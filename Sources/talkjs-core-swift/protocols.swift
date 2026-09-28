@@ -29,7 +29,9 @@ public struct TalkJSError: Error, Equatable {
   }
 }
 
+/// A subscription to an event
 public protocol Subscription {
+  /// Stop receiving events for this subscription
   func unsubscribe()
 }
 

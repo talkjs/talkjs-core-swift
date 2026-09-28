@@ -4,6 +4,14 @@ internal import TalkJSCore
 // Sharing the value is only dangerous if someone mutates it, and this struct
 // only has immutable data.
 public struct Session: @unchecked Sendable {
+  /// A reference to the user this session is connected as
+  ///
+  /// This is immutable. If you want to connect as a different user,
+  /// call ``getTalkSession(appId:userId:token:tokenFetcher:)`` again to get a new session.
+  ///
+  /// Equivalent to calling ``user(id:)`` with the current user's ID.
+  ///
+  /// - SeeAlso: ``user(id:)`` which lets you get a reference to any user.
   public let currentUser: UserRef
 
   private let _session: TalkSession
@@ -13,14 +21,25 @@ public struct Session: @unchecked Sendable {
     self.currentUser = UserRef(from: session.currentUser)
   }
 
+  /// Get a reference to a user
+  ///
+  /// - Parameter id: The ID of the user that you want to reference
+  /// - Returns: A ``UserRef`` for the user with that ID
   public func user(id: String) -> UserRef {
     UserRef(from: _session.user(id: id))
   }
 
+  /// Get a reference to a conversation
+  ///
+  /// - Parameter id: The ID of the conversation that you want to reference
+  /// - Returns: A ``ConversationRef`` for the conversation with that ID
   public func conversation(id: String) -> ConversationRef {
     ConversationRef(from: _session.conversation(id: id))
   }
 
+  /// Attaches a handler that will be called when the session encounters an error
+  ///
+  /// Returns a callback which detaches your handler
   public func onError(handler: @escaping @Sendable (TalkJSError) -> Void)
     -> any Subscription
   {
@@ -29,6 +48,7 @@ public struct Session: @unchecked Sendable {
     )
   }
 
+  /// Subscribes to the most recently active conversations for the current user
   public func subscribeConversations(
     onSnapshot: (@Sendable ([ConversationSnapshot], Bool) -> Void)?
   ) -> ConversationListSubscription {
@@ -48,6 +68,13 @@ public struct Session: @unchecked Sendable {
     return ConversationListSubscription(from: subscription)
   }
 
+  /// Upload an audio file with audio-specific metadata.
+  ///
+  /// This is a variant of ``uploadFile(data:metadata:)`` used for audio files.
+  ///
+  /// - Parameter data: The binary audio data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
+  /// - Parameter metadata: Information about the audio file.
+  /// - Returns: A file token that can be used to send the audio file in a message.
   public func uploadAudio(data: [Int8], metadata: AudioFileMetadata) async
     -> String
   {
@@ -57,6 +84,18 @@ public struct Session: @unchecked Sendable {
     )
   }
 
+  /// Upload a generic file without any additional metadata.
+  ///
+  /// This function does not send any message, it only uploads the file and returns a file token.
+  /// To send the file in a message, pass the file token in a ``SendFileBlock`` when calling ``ConversationRef/send(content:referencedMessage:custom:)``.
+  ///
+  /// [See the documentation](https://talkjs.com/docs/Reference/Concepts/Message_Content/#sending-message-content) for more information about sending files in messages.
+  ///
+  /// If the file is a video, image, audio file, or voice recording, use one of the other functions like ``uploadImage(data:metadata:)`` instead.
+  ///
+  /// - Parameter data: The binary file data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
+  /// - Parameter metadata: Information about the file
+  /// - Returns: A file token that can be used to send the file in a message.
   public func uploadFile(data: [Int8], metadata: GenericFileMetadata) async
     -> String
   {
@@ -66,6 +105,13 @@ public struct Session: @unchecked Sendable {
     )
   }
 
+  /// Upload a video with video-specific metadata.
+  ///
+  /// This is a variant of ``uploadFile(data:metadata:)`` used for videos.
+  ///
+  /// - Parameter data: The binary video data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
+  /// - Parameter metadata: Information about the video.
+  /// - Returns: A file token that can be used to send the video in a message.
   public func uploadVideo(data: [Int8], metadata: VideoFileMetadata) async
     -> String
   {
@@ -75,6 +121,13 @@ public struct Session: @unchecked Sendable {
     )
   }
 
+  /// Upload an image with image-specific metadata.
+  ///
+  /// This is a variant of ``uploadFile(data:metadata:)`` used for images.
+  ///
+  /// - Parameter data: The binary image data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
+  /// - Parameter metadata: Information about the image.
+  /// - Returns: A file token that can be used to send the image in a message.
   public func uploadImage(data: [Int8], metadata: ImageFileMetadata) async
     -> String
   {
@@ -84,6 +137,13 @@ public struct Session: @unchecked Sendable {
     )
   }
 
+  /// Upload a voice recording with voice-specific metadata.
+  ///
+  /// This is a variant of ``uploadFile(data:metadata:)`` used for voice recordings.
+  ///
+  /// - Parameter data: The binary audio data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
+  /// - Parameter metadata: Information about the voice recording.
+  /// - Returns: A file token that can be used to send the audio file in a message.
   public func uploadVoice(data: [Int8], metadata: VoiceRecordingFileMetadata)
     async
     -> String
@@ -98,6 +158,7 @@ public struct Session: @unchecked Sendable {
 public struct GenericFileMetadata {
   let filename: String
 
+  /// - Parameter filename: The name of the file including extension.
   public init(filename: String) {
     self.filename = filename
   }
@@ -111,6 +172,8 @@ public struct AudioFileMetadata {
   let filename: String
   let duration: Double?
 
+  /// - Parameter filename: The name of the file including extension.
+  /// - Parameter duration: The duration of the audio file in seconds, if known.
   public init(filename: String, duration: Double? = nil) {
     self.filename = filename
     self.duration = duration
@@ -130,6 +193,10 @@ public struct VideoFileMetadata {
   let width: Int?
   let height: Int?
 
+  /// - Parameter filename: The name of the file including extension.
+  /// - Parameter width: The width of the video in pixels, if known.
+  /// - Parameter height: The height of the video in pixels, if known.
+  /// - Parameter duration: The duration of the video in seconds, if known.
   public init(
     filename: String,
     duration: Double? = nil,
@@ -157,6 +224,9 @@ public struct ImageFileMetadata {
   let width: Int?
   let height: Int?
 
+  /// - Parameter filename: The name of the file including extension.
+  /// - Parameter width: The width of the image in pixels, if known.
+  /// - Parameter height: The height of the image in pixels, if known.
   public init(filename: String, width: Int? = nil, height: Int? = nil) {
     self.filename = filename
     self.width = width
@@ -176,6 +246,8 @@ public struct VoiceRecordingFileMetadata {
   let filename: String
   let duration: Double?
 
+  /// - Parameter filename: The name of the file including extension.
+  /// - Parameter duration: The duration of the recording in seconds, if known.
   public init(filename: String, duration: Double? = nil) {
     self.filename = filename
     self.duration = duration

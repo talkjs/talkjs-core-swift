@@ -26,6 +26,7 @@ extension Entity {
 extension String: Entity {}
 
 public typealias EntityTreeNode = any Entity
+/// A multi-root tree, which describes a bunch of formatting and logical entities within a message.
 public typealias EntityTree = [EntityTreeNode]
 
 extension Array where Element == EntityTreeNode {
@@ -103,6 +104,9 @@ public struct CodeBlock: Leaf, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that renders `text` in an inline code span (HTML `<code>`).
+///
+/// Used when a user types ` ```text``` `.
 public struct CodeSpan: Leaf, KotlinConvertibleEntity {
   public let text: String
 
@@ -119,8 +123,38 @@ public struct CodeSpan: Leaf, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that renders `text` as a link (HTML `<a>`).
+///
+/// Used when user-typed text is turned into a link automatically.
+///
+/// Unlike ``Link``, users do have permission to send ``AutoLink`` by default, because the `text` and `url` properties must match.
+/// Specifically:
+///
+/// - If `text` is an email, `url` must contain a `mailto:` link to the same email address
+///
+/// - If `text` is a phone number, `url` must contain a `tel:` link to the same phone number
+///
+/// - If `text` is a website, the domain name including subdomains must be the same in both `text` and `url`.
+///   If `text` includes a protocol (such as `https`), path (/page), query string (?page=true), or url fragment (#title), they must be the same in `url`.
+///   If `text` does not specify a protocol, `url` must use either `https` or `http`.
+///
+/// This means that the following AutoLink is valid:
+///
+/// ```swift
+/// AutoLink(
+///     url: "https://talkjs.com/docs/JavaScript_Data_API/Message_Content/#AutoLinkNode",
+///     text: "talkjs.com",
+/// )
+/// ```
+///
+/// That link will appear as `talkjs.com` and link you to the specific section of the documentation that explains how ``AutoLink`` works.
+///
+/// These rules ensure that the user knows what link they are clicking, and prevents ``AutoLink`` being used for phishing.
+/// If you try to send a message containing an ``AutoLink`` that breaks these rules, the request will be rejected.
 public struct AutoLink: Leaf, KotlinConvertibleEntity {
+  /// The text to display in the link.
   public let text: String
+  /// The URL to open when a user clicks this node.
   public let url: String
 
   public init(url: String, text: String) {
@@ -169,7 +203,9 @@ public struct Emoji: Leaf, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that is used for [custom emoji](https://talkjs.com/docs/Features/Messages/Emojis/#custom-emojis).
 public struct CustomEmoji: Leaf, KotlinConvertibleEntity {
+  /// The name (including colons at the start and end) of the custom emoji to show.
   public let text: String
 
   public init(text: String) {
@@ -185,8 +221,13 @@ public struct CustomEmoji: Leaf, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that is used when a user is [mentioned](https://talkjs.com/docs/Features/Messages/Mentions/).
+///
+/// Used when a user types `@name` and selects the user they want to mention.
 public struct Mention: Leaf, KotlinConvertibleEntity {
+  /// The ID of the user who is mentioned.
   public let id: String
+  /// The name of the user who is mentioned.
   public let text: String
 
   public init(id: String, text: String) {
@@ -203,8 +244,16 @@ public struct Mention: Leaf, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that renders its children with a specific style.
 public struct Markup: Entity, KotlinConvertibleEntity {
   public let children: EntityTree
+  /// The kind of formatting to apply when rendering the children
+  ///
+  /// - `type: "bold"` is used when users type `*text*` and is rendered with HTML `<strong>`
+  ///
+  /// - `type: "italic"` is used when users type `_text_` and is rendered with HTML `<em>`
+  ///
+  /// - `type: "strikethrough"` is used when users type `~text~` and is rendered with HTML `<s>`
   public let type: String
 
   public init(type: String, children: EntityTree) throws {
@@ -259,6 +308,9 @@ public struct Blockquote: Entity, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that adds indentation for a bullet-point list around its children (HTML `<ul>`).
+///
+/// Used when users send a bullet-point list by starting lines of their message with `-` or `*`.
 public struct BulletList: Entity, KotlinConvertibleEntity {
   public let children: EntityTree
 
@@ -282,6 +334,9 @@ public struct BulletList: Entity, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that renders its children with a bullet-point (HTML `<li>`).
+///
+/// Used when users start a line of their message with `-` or `*`.
 public struct BulletPoint: Entity, KotlinConvertibleEntity {
   public let children: [EntityTreeNode]
 
@@ -309,8 +364,12 @@ public protocol Clickable: Entity {
   var children: EntityTree { get }
 }
 
+/// A node in a ``TextBlock`` that renders its children as a clickable link (HTML `<a>`).
+///
+/// By default, users do not have permission to send messages containing ``Link`` as it can be used to maliciously hide the true destination of a link.
 public struct Link: Clickable, KotlinConvertibleEntity {
   public let children: EntityTree
+  /// The URL to open when the node is clicked.
   public let url: String
 
   public init(url: String, children: EntityTree) {
@@ -340,9 +399,15 @@ public struct Link: Clickable, KotlinConvertibleEntity {
 
 public typealias CustomData = [String: String]
 
+/// A node in a ``TextBlock`` that renders its children as a clickable [action link](https://talkjs.com/docs/Guides/JavaScript/Classic/Action_Buttons_Links/) which triggers a custom action.
+///
+/// By default, users do not have permission to send messages containing ``ActionLink`` as it can be used maliciously to trick others into invoking custom actions.
+/// For example, a user could send an "accept offer" action link, but disguise it as a link to a website.
 public struct ActionLink: Clickable, KotlinConvertibleEntity {
   public let children: EntityTree
+  /// The name of the custom action to invoke when the link is clicked.
   public let action: String
+  /// The parameters to pass to the custom action when the link is clicked.
   public let params: CustomData
 
   public init(action: String, params: CustomData, children: EntityTree) {
@@ -374,9 +439,15 @@ public struct ActionLink: Clickable, KotlinConvertibleEntity {
   }
 }
 
+/// A node in a ``TextBlock`` that renders its children as a clickable [action button](https://talkjs.com/docs/Guides/JavaScript/Classic/Action_Buttons_Links/) which triggers a custom action.
+///
+/// By default, users do not have permission to send messages containing action buttons as they can be used maliciously to trick others into invoking custom actions.
+/// For example, a user could send an "accept offer" action button, but disguise it as "view offer".
 public struct ActionButton: Clickable, KotlinConvertibleEntity {
   public let children: EntityTree
+  /// The name of the custom action to invoke when the button is clicked.
   public let action: String
+  /// The parameters to pass to the custom action when the button is clicked.
   public let params: CustomData
 
   public init(action: String, params: CustomData, children: EntityTree) {
