@@ -12,7 +12,7 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "Wrapper",
+            name: "talkjs-core-swift",
             targets: ["talkjs-core-swift"]
         ),
     ],
