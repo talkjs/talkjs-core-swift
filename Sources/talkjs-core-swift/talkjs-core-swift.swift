@@ -21,10 +21,10 @@ public typealias TokenFetcher = () async -> String
 public func getTalkSession(
   appId: String,
   userId: String,
+  host: String,
   token: String? = nil,
   tokenFetcher: TokenFetcher? = nil,
   signature: String? = nil,
-  host: String? = nil,
   apiUrls: ApiUrlOptions? = nil,
   forceCreateNew: Bool = false,
 ) -> Session {
@@ -42,7 +42,7 @@ public func getTalkSession(
       appId: appId,
       userId: userId,
       token: token,
-      tokenFetcher: nil,
+      tokenFetcher: tokenFetcher,
       forceCreateNew: forceCreateNew,
       signature: signature,
       apiUrls: urlOptions,

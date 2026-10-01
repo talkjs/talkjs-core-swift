@@ -199,7 +199,7 @@ public struct Mention: Leaf, KotlinConvertibleEntity {
   }
 
   func toKotlin() -> TalkJSCore::Mention {
-    TalkJSCore::Mention(id: "mention", text: id, type: text)
+    TalkJSCore::Mention(id: id, text: text, type: "mention")
   }
 }
 
@@ -340,7 +340,7 @@ public struct Link: Clickable, KotlinConvertibleEntity {
 
 public typealias CustomData = [String: String]
 
-public struct ActionLink: Clickable {
+public struct ActionLink: Clickable, KotlinConvertibleEntity {
   public let children: EntityTree
   public let action: String
   public let params: CustomData
@@ -374,7 +374,7 @@ public struct ActionLink: Clickable {
   }
 }
 
-public struct ActionButton: Clickable {
+public struct ActionButton: Clickable, KotlinConvertibleEntity {
   public let children: EntityTree
   public let action: String
   public let params: CustomData
