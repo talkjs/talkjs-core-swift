@@ -1,6 +1,9 @@
 internal import TalkJSCore
 
-public struct MessageRef {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct MessageRef: @unchecked Sendable {
   public let id: String
   public let conversationId: String
 
@@ -43,7 +46,7 @@ public struct MessageRef {
   }
 }
 
-public struct MessageSnapshot: Equatable {
+public struct MessageSnapshot: Equatable, Sendable {
   public let content: [any ContentBlock]
   public let createdAt: Int64
   public let custom: [String: String]
@@ -93,26 +96,25 @@ extension Array where Element == TalkJSCore::MessageSnapshot {
   }
 }
 
-public enum MessageOrigin: Equatable {
+public enum MessageOrigin: Equatable, Sendable {
   case web, rest, `import`, email
 
   init(from messageOrigin: TalkJSCore::MessageOrigin) {
-    switch messageOrigin.name {
-    case "web":
+    if messageOrigin == .web {
       self = .web
-    case "rest":
+    } else if messageOrigin == .rest {
       self = .rest
-    case "import":
+    } else if messageOrigin == .`import` {
       self = .`import`
-    case "email":
+    } else if messageOrigin == .email {
       self = .email
-    default:
+    } else {
       preconditionFailure("Unreachable")
     }
   }
 }
 
-public struct ReferencedMessageSnapshot: Equatable {
+public struct ReferencedMessageSnapshot: Equatable, Sendable {
   public let content: [any ContentBlock]
   public let createdAt: Int64
   public let custom: [String: String]
@@ -157,22 +159,24 @@ public struct ReferencedMessageSnapshot: Equatable {
   }
 }
 
-public enum MessageType: Equatable {
+public enum MessageType: Equatable, Sendable {
   case UserMessage, SystemMessage
 
   init(from messageType: TalkJSCore::MessageType) {
-    switch messageType.name {
-    case "UserMessage":
+    if messageType == .userMessage {
       self = .UserMessage
-    case "SystemMessage":
+    } else if messageType == .systemMessage {
       self = .SystemMessage
-    default:
+    } else {
       preconditionFailure("Unreachable")
     }
   }
 }
 
-public struct MessageSubscription: RealtimeSubscription {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct MessageSubscription: RealtimeSubscription, @unchecked Sendable {
   public let connected: Deferred<MessageSubscriptionState>
   public let terminated: Deferred<MessageSubscriptionState>
   public var state: MessageSubscriptionState {
@@ -203,7 +207,7 @@ public struct MessageSubscription: RealtimeSubscription {
   public func unsubscribe() { _subscription.unsubscribe() }
 }
 
-public enum MessageSubscriptionState: SubscriptionState, Equatable {
+public enum MessageSubscriptionState: SubscriptionState, Equatable, Sendable {
   case pending
   case unsubscribed
   case active(latestSnapshot: [MessageSnapshot]?, loadedAll: Bool)

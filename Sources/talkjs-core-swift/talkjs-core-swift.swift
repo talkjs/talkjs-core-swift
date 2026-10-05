@@ -16,7 +16,26 @@ public struct ApiUrlOptions: Equatable {
   }
 }
 
-public typealias TokenFetcher = () async -> String
+public typealias TokenFetcher = @Sendable () async throws -> String
+
+// The binary takes the token fetcher as a Kotlin `suspend () -> String`, which
+// is exported as `KotlinSuspendFunction0`. This adapts a Swift async closure.
+// If the fetcher throws, the session terminates.
+//
+// SKIE renames the original suspend method by adding a `__` prefix (to avoid a
+// clash with the `invoke()` wrapper it generates), so `__invoke()` is the
+// requirement to implement. See https://skie.touchlab.co/features/suspend
+final class TokenFetcherAdapter: TalkJSCore::KotlinSuspendFunction0 {
+  private let fetcher: TokenFetcher
+
+  init(_ fetcher: @escaping TokenFetcher) {
+    self.fetcher = fetcher
+  }
+
+  func __invoke() async throws -> Any? {
+    try await fetcher()
+  }
+}
 
 public func getTalkSession(
   appId: String,
@@ -42,7 +61,7 @@ public func getTalkSession(
       appId: appId,
       userId: userId,
       token: token,
-      tokenFetcher: tokenFetcher,
+      tokenFetcher: tokenFetcher.map { TokenFetcherAdapter($0) },
       forceCreateNew: forceCreateNew,
       signature: signature,
       apiUrls: urlOptions,
@@ -61,8 +80,8 @@ public func getTalkSession(
   return getTalkSession(
     appId: appId,
     userId: userId,
+    host: "",  // prod
     token: token,
-    tokenFetcher: tokenFetcher,
-    host: ""  // prod
+    tokenFetcher: tokenFetcher
   )
 }

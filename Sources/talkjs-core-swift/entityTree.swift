@@ -12,7 +12,7 @@ internal protocol KotlinConvertibleEntity {
 // Also the JS implementation needs the `type` property to distinguish
 // the various objects. Swift is a type safe language we don't really
 // need the `type` property
-public protocol Entity: Equatable {}
+public protocol Entity: Equatable, Sendable {}
 
 extension Entity {
   func isEqual<U: Entity>(_ rhs: U) -> Bool {

@@ -1,6 +1,9 @@
 internal import TalkJSCore
 
-public struct ConversationListSubscription: RealtimeSubscription {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct ConversationListSubscription: RealtimeSubscription, @unchecked Sendable {
   public let connected: Deferred<ConversationListSubscriptionState>
   public let terminated: Deferred<ConversationListSubscriptionState>
   public var state: ConversationListSubscriptionState {
@@ -31,7 +34,7 @@ public struct ConversationListSubscription: RealtimeSubscription {
   public func unsubscribe() { _subscription.unsubscribe() }
 }
 
-public enum ConversationListSubscriptionState: SubscriptionState, Equatable {
+public enum ConversationListSubscriptionState: SubscriptionState, Equatable, Sendable {
   case pending
   case unsubscribed
   case active(latestSnapshot: [ConversationSnapshot], loadedAll: Bool)

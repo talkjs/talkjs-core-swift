@@ -1,6 +1,9 @@
 internal import TalkJSCore
 
-public struct ParticipantRef {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct ParticipantRef: @unchecked Sendable {
   public let userId: String
   public let conversationId: String
 
@@ -56,7 +59,7 @@ public struct ParticipantRef {
   }
 }
 
-public struct ParticipantSnapshot: Equatable {
+public struct ParticipantSnapshot: Equatable, Sendable {
   public let access: ConversationAccess
   public let joinedAt: Int64
   public let notify: NotificationSettings
@@ -80,7 +83,10 @@ extension Array where Element == TalkJSCore::ParticipantSnapshot {
   }
 }
 
-public struct ParticipantSubscription: RealtimeSubscription {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct ParticipantSubscription: RealtimeSubscription, @unchecked Sendable {
   public let connected: Deferred<ParticipantSubscriptionState>
   public let terminated: Deferred<ParticipantSubscriptionState>
   public var state: ParticipantSubscriptionState {
@@ -111,7 +117,7 @@ public struct ParticipantSubscription: RealtimeSubscription {
   public func unsubscribe() { _subscription.unsubscribe() }
 }
 
-public enum ParticipantSubscriptionState: SubscriptionState, Equatable {
+public enum ParticipantSubscriptionState: SubscriptionState, Equatable, Sendable {
   case pending
   case unsubscribed
   case active(latestSnapshot: [ParticipantSnapshot]?, loadedAll: Bool)
