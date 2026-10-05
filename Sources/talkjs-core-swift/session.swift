@@ -21,33 +21,22 @@ public struct Session: @unchecked Sendable {
     ConversationRef(from: _session.conversation(id: id))
   }
 
-  public func onError(handler: @escaping @MainActor (TalkJSError) -> Void)
+  public func onError(handler: @escaping @Sendable (TalkJSError) -> Void)
     -> any Subscription
   {
     KotlinSubscription(
-      _session.onError {
-        // Called by Kotlin on a background thread; deliver on the main actor.
-        let error = TalkJSError(from: $0)
-        Task { @MainActor in
-          handler(error)
-        }
-      }
+      _session.onError { handler(TalkJSError(from: $0)) }
     )
   }
 
   public func subscribeConversations(
-    onSnapshot: (@MainActor ([ConversationSnapshot], Bool) -> Void)?
+    onSnapshot: (@Sendable ([ConversationSnapshot], Bool) -> Void)?
   ) -> ConversationListSubscription {
     let handler:
       (([TalkJSCore::ConversationSnapshot], KotlinBoolean) -> Void)? =
         if onSnapshot != nil {
           { (snapshot, loadedAll) in
-            // Called by Kotlin on a background thread; deliver on the main actor.
-            let snapshot = snapshot.fromKotlin()
-            let loadedAll = loadedAll.boolValue
-            Task { @MainActor in
-              onSnapshot!(snapshot, loadedAll)
-            }
+            onSnapshot!(snapshot.fromKotlin(), loadedAll.boolValue)
           }
         } else {
           nil

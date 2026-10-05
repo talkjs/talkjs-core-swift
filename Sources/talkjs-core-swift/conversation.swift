@@ -106,17 +106,11 @@ public struct ConversationRef: @unchecked Sendable {
   }
 
   public func subscribe(
-    onSnapshot: (@MainActor (ConversationSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (ConversationSnapshot?) -> Void)? = nil
   ) -> ConversationSubscription {
     let handler: ((TalkJSCore::ConversationSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        {
-          // Called by Kotlin on a background thread; deliver on the main actor.
-          let snapshot = ConversationSnapshot(from: $0)
-          Task { @MainActor in
-            onSnapshot!(snapshot)
-          }
-        }
+        { onSnapshot!(ConversationSnapshot(from: $0)) }
       } else {
         nil
       }
@@ -126,17 +120,12 @@ public struct ConversationRef: @unchecked Sendable {
   }
 
   public func subscribeMessages(
-    onSnapshot: (@MainActor ([MessageSnapshot]?, Bool) -> Void)? = nil
+    onSnapshot: (@Sendable ([MessageSnapshot]?, Bool) -> Void)? = nil
   ) -> MessageSubscription {
     let handler: (([TalkJSCore::MessageSnapshot]?, KotlinBoolean) -> Void)? =
       if onSnapshot != nil {
         { (snapshot, loadedAll) in
-          // Called by Kotlin on a background thread; deliver on the main actor.
-          let snapshot = snapshot?.fromKotlin()
-          let loadedAll = loadedAll.boolValue
-          Task { @MainActor in
-            onSnapshot!(snapshot, loadedAll)
-          }
+          onSnapshot!(snapshot?.fromKotlin(), loadedAll.boolValue)
         }
       } else {
         nil
@@ -147,18 +136,13 @@ public struct ConversationRef: @unchecked Sendable {
   }
 
   public func subscribeParticipants(
-    onSnapshot: (@MainActor ([ParticipantSnapshot]?, Bool) -> Void)? = nil
+    onSnapshot: (@Sendable ([ParticipantSnapshot]?, Bool) -> Void)? = nil
   ) -> ParticipantSubscription {
     let handler:
       (([TalkJSCore::ParticipantSnapshot]?, KotlinBoolean) -> Void)? =
         if onSnapshot != nil {
           { (snapshot, loadedAll) in
-            // Called by Kotlin on a background thread; deliver on the main actor.
-            let snapshot = snapshot?.fromKotlin()
-            let loadedAll = loadedAll.boolValue
-            Task { @MainActor in
-              onSnapshot!(snapshot, loadedAll)
-            }
+            onSnapshot!(snapshot?.fromKotlin(), loadedAll.boolValue)
           }
         } else {
           nil
@@ -171,17 +155,11 @@ public struct ConversationRef: @unchecked Sendable {
   }
 
   public func subscribeTyping(
-    onSnapshot: (@MainActor (TypingSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (TypingSnapshot?) -> Void)? = nil
   ) -> TypingSubscription {
     let handler: ((TalkJSCore::TypingSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        {
-          // Called by Kotlin on a background thread; deliver on the main actor.
-          let snapshot = TypingSnapshot(from: $0)
-          Task { @MainActor in
-            onSnapshot!(snapshot)
-          }
-        }
+        { onSnapshot!(TypingSnapshot(from: $0)) }
       } else {
         nil
       }

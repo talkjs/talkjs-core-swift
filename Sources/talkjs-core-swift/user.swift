@@ -71,17 +71,11 @@ public struct UserRef: @unchecked Sendable {
   }
 
   public func subscribe(
-    onSnapshot: (@MainActor (UserSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (UserSnapshot?) -> Void)? = nil
   ) -> UserSubscription {
     let handler: ((TalkJSCore::UserSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        {
-          // Called by Kotlin on a background thread; deliver on the main actor.
-          let snapshot = UserSnapshot(from: $0)
-          Task { @MainActor in
-            onSnapshot!(snapshot)
-          }
-        }
+        { onSnapshot!(UserSnapshot(from: $0)) }
       } else {
         nil
       }
@@ -91,19 +85,13 @@ public struct UserRef: @unchecked Sendable {
   }
 
   public func subscribeOnline(
-    onSnapshot: (@MainActor (UserOnlineSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (UserOnlineSnapshot?) -> Void)? = nil
   )
     -> UserOnlineSubscription
   {
     let handler: ((TalkJSCore::UserOnlineSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        {
-          // Called by Kotlin on a background thread; deliver on the main actor.
-          let snapshot = UserOnlineSnapshot(from: $0)
-          Task { @MainActor in
-            onSnapshot!(snapshot)
-          }
-        }
+        { onSnapshot!(UserOnlineSnapshot(from: $0)) }
       } else {
         nil
       }
