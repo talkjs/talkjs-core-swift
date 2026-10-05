@@ -1,6 +1,9 @@
 internal import TalkJSCore
 
-public struct UserRef {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct UserRef: @unchecked Sendable {
   public let id: String
 
   private let _userRef: TalkJSCore::UserRef
@@ -67,12 +70,18 @@ public struct UserRef {
     )
   }
 
-  public func subscribe(onSnapshot: ((UserSnapshot?) -> Void)? = nil)
-    -> UserSubscription
-  {
+  public func subscribe(
+    onSnapshot: (@MainActor (UserSnapshot?) -> Void)? = nil
+  ) -> UserSubscription {
     let handler: ((TalkJSCore::UserSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        { onSnapshot!(UserSnapshot(from: $0)) }
+        {
+          // Called by Kotlin on a background thread; deliver on the main actor.
+          let snapshot = UserSnapshot(from: $0)
+          Task { @MainActor in
+            onSnapshot!(snapshot)
+          }
+        }
       } else {
         nil
       }
@@ -82,13 +91,19 @@ public struct UserRef {
   }
 
   public func subscribeOnline(
-    onSnapshot: ((UserOnlineSnapshot?) -> Void)? = nil
+    onSnapshot: (@MainActor (UserOnlineSnapshot?) -> Void)? = nil
   )
     -> UserOnlineSubscription
   {
     let handler: ((TalkJSCore::UserOnlineSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        { onSnapshot!(UserOnlineSnapshot(from: $0)) }
+        {
+          // Called by Kotlin on a background thread; deliver on the main actor.
+          let snapshot = UserOnlineSnapshot(from: $0)
+          Task { @MainActor in
+            onSnapshot!(snapshot)
+          }
+        }
       } else {
         nil
       }
@@ -98,7 +113,7 @@ public struct UserRef {
   }
 }
 
-public struct UserSnapshot: Equatable {
+public struct UserSnapshot: Equatable, Sendable {
   public let id: String
   public let name: String
   public let role: String
@@ -126,7 +141,7 @@ extension Array where Element == TalkJSCore::UserSnapshot {
   }
 }
 
-public struct UserOnlineSnapshot: Equatable {
+public struct UserOnlineSnapshot: Equatable, Sendable {
   public let isConnected: Bool
   public let user: UserSnapshot
 
@@ -140,7 +155,10 @@ public struct UserOnlineSnapshot: Equatable {
   }
 }
 
-public struct UserSubscription: RealtimeSubscription {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct UserSubscription: RealtimeSubscription, @unchecked Sendable {
   public var state: UserSubscriptionState {
     UserSubscriptionState(from: _subscription.state)
   }
@@ -166,7 +184,10 @@ public struct UserSubscription: RealtimeSubscription {
   public func unsubscribe() { _subscription.unsubscribe() }
 }
 
-public struct UserOnlineSubscription: RealtimeSubscription {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct UserOnlineSubscription: RealtimeSubscription, @unchecked Sendable {
   public var state: UserOnlineSubscriptionState {
     UserOnlineSubscriptionState(fromKotlin: _subscription.state)
   }
@@ -192,7 +213,7 @@ public struct UserOnlineSubscription: RealtimeSubscription {
   public func unsubscribe() { _subscription.unsubscribe() }
 }
 
-public enum UserSubscriptionState: SubscriptionState, Equatable {
+public enum UserSubscriptionState: SubscriptionState, Equatable, Sendable {
   case pending
   case unsubscribed
   case active(latestSnapshot: UserSnapshot?)
@@ -224,7 +245,7 @@ public enum UserSubscriptionState: SubscriptionState, Equatable {
   }
 }
 
-public enum UserOnlineSubscriptionState: SubscriptionState, Equatable {
+public enum UserOnlineSubscriptionState: SubscriptionState, Equatable, Sendable {
   case pending
   case unsubscribed
   case active(latestSnapshot: UserOnlineSnapshot?)

@@ -1,6 +1,9 @@
 internal import TalkJSCore
 
-public struct Session {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct Session: @unchecked Sendable {
   public let currentUser: UserRef
 
   private let _session: TalkSession
@@ -18,20 +21,33 @@ public struct Session {
     ConversationRef(from: _session.conversation(id: id))
   }
 
-  public func onError(handler: @escaping (TalkJSError) -> Void)
+  public func onError(handler: @escaping @MainActor (TalkJSError) -> Void)
     -> any Subscription
   {
-    _session.onError { handler(TalkJSError(from: $0)) } as! Subscription
+    KotlinSubscription(
+      _session.onError {
+        // Called by Kotlin on a background thread; deliver on the main actor.
+        let error = TalkJSError(from: $0)
+        Task { @MainActor in
+          handler(error)
+        }
+      }
+    )
   }
 
   public func subscribeConversations(
-    onSnapshot: (([ConversationSnapshot], Bool) -> Void)?
+    onSnapshot: (@MainActor ([ConversationSnapshot], Bool) -> Void)?
   ) -> ConversationListSubscription {
     let handler:
       (([TalkJSCore::ConversationSnapshot], KotlinBoolean) -> Void)? =
         if onSnapshot != nil {
           { (snapshot, loadedAll) in
-            onSnapshot!(snapshot.fromKotlin(), loadedAll.boolValue)
+            // Called by Kotlin on a background thread; deliver on the main actor.
+            let snapshot = snapshot.fromKotlin()
+            let loadedAll = loadedAll.boolValue
+            Task { @MainActor in
+              onSnapshot!(snapshot, loadedAll)
+            }
           }
         } else {
           nil

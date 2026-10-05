@@ -21,8 +21,8 @@ let package = Package(
         // Targets can depend on other targets in this package and products from dependencies.
         .binaryTarget(
             name: "BinaryCore",
-            url: "https://github.com/talkjs/talkjs-core-swift/releases/download/TalkJSCore_v0.2.0-alpha/TalkJSCoreRelease.zip",
-            checksum: "641aa0c52bde0ca31676a312b8c3bfbd7586cae1609d3c553e4f550cc4b9a27d"
+            url: "https://github.com/talkjs/talkjs-core-swift/releases/download/TalkJSCore_v0.2.1-alpha/TalkJSCoreRelease.zip",
+            checksum: "afb8e9c794820c24361b4aa377890d0f2a9f1137ccfc6558d670b2816f08cb47"
         ),
         .target(
             name: "talkjs-core-swift",

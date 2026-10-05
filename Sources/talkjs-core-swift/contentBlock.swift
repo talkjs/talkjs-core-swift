@@ -22,7 +22,7 @@ extension Array where Element == any SendContentBlock {
   }
 }
 
-public protocol ContentBlock: Equatable {}
+public protocol ContentBlock: Equatable, Sendable {}
 
 extension ContentBlock {
   func isEqual<U: ContentBlock>(_ rhs: U) -> Bool {

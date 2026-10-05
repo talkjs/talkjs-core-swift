@@ -1,6 +1,9 @@
 internal import TalkJSCore
 
-public struct ConversationRef {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct ConversationRef: @unchecked Sendable {
   public let id: String
 
   private let _conversationRef: TalkJSCore::ConversationRef
@@ -102,12 +105,18 @@ public struct ConversationRef {
     )
   }
 
-  public func subscribe(onSnapshot: ((ConversationSnapshot?) -> Void)? = nil)
-    -> ConversationSubscription
-  {
+  public func subscribe(
+    onSnapshot: (@MainActor (ConversationSnapshot?) -> Void)? = nil
+  ) -> ConversationSubscription {
     let handler: ((TalkJSCore::ConversationSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        { onSnapshot!(ConversationSnapshot(from: $0)) }
+        {
+          // Called by Kotlin on a background thread; deliver on the main actor.
+          let snapshot = ConversationSnapshot(from: $0)
+          Task { @MainActor in
+            onSnapshot!(snapshot)
+          }
+        }
       } else {
         nil
       }
@@ -117,12 +126,17 @@ public struct ConversationRef {
   }
 
   public func subscribeMessages(
-    onSnapshot: (([MessageSnapshot]?, Bool) -> Void)? = nil
+    onSnapshot: (@MainActor ([MessageSnapshot]?, Bool) -> Void)? = nil
   ) -> MessageSubscription {
     let handler: (([TalkJSCore::MessageSnapshot]?, KotlinBoolean) -> Void)? =
       if onSnapshot != nil {
         { (snapshot, loadedAll) in
-          onSnapshot!(snapshot?.fromKotlin(), loadedAll.boolValue)
+          // Called by Kotlin on a background thread; deliver on the main actor.
+          let snapshot = snapshot?.fromKotlin()
+          let loadedAll = loadedAll.boolValue
+          Task { @MainActor in
+            onSnapshot!(snapshot, loadedAll)
+          }
         }
       } else {
         nil
@@ -133,13 +147,18 @@ public struct ConversationRef {
   }
 
   public func subscribeParticipants(
-    onSnapshot: (([ParticipantSnapshot]?, Bool) -> Void)? = nil
+    onSnapshot: (@MainActor ([ParticipantSnapshot]?, Bool) -> Void)? = nil
   ) -> ParticipantSubscription {
     let handler:
       (([TalkJSCore::ParticipantSnapshot]?, KotlinBoolean) -> Void)? =
         if onSnapshot != nil {
           { (snapshot, loadedAll) in
-            onSnapshot!(snapshot?.fromKotlin(), loadedAll.boolValue)
+            // Called by Kotlin on a background thread; deliver on the main actor.
+            let snapshot = snapshot?.fromKotlin()
+            let loadedAll = loadedAll.boolValue
+            Task { @MainActor in
+              onSnapshot!(snapshot, loadedAll)
+            }
           }
         } else {
           nil
@@ -151,12 +170,18 @@ public struct ConversationRef {
     return ParticipantSubscription(from: subscription)
   }
 
-  public func subscribeTyping(onSnapshot: ((TypingSnapshot?) -> Void)? = nil)
-    -> TypingSubscription
-  {
+  public func subscribeTyping(
+    onSnapshot: (@MainActor (TypingSnapshot?) -> Void)? = nil
+  ) -> TypingSubscription {
     let handler: ((TalkJSCore::TypingSnapshot?) -> Void)? =
       if onSnapshot != nil {
-        { onSnapshot!(TypingSnapshot(from: $0)) }
+        {
+          // Called by Kotlin on a background thread; deliver on the main actor.
+          let snapshot = TypingSnapshot(from: $0)
+          Task { @MainActor in
+            onSnapshot!(snapshot)
+          }
+        }
       } else {
         nil
       }
@@ -168,7 +193,7 @@ public struct ConversationRef {
   }
 }
 
-public struct ConversationSnapshot: Equatable {
+public struct ConversationSnapshot: Equatable, Sendable {
   public let id: String
   public let subject: String?
   public let photoUrl: String?
@@ -198,7 +223,7 @@ extension Array where Element == TalkJSCore::ConversationSnapshot {
   }
 }
 
-public struct TypingSnapshot: Equatable {
+public struct TypingSnapshot: Equatable, Sendable {
   public let many: Bool
   public let users: [UserSnapshot]?
 
@@ -212,16 +237,15 @@ public struct TypingSnapshot: Equatable {
   }
 }
 
-public enum ConversationAccess: Equatable {
+public enum ConversationAccess: Equatable, Sendable {
   case Read, ReadWrite
 
   init(from conversationAccess: TalkJSCore::ConversationAccess) {
-    switch conversationAccess.name {
-    case "Read":
+    if conversationAccess == .read {
       self = .Read
-    case "ReadWrite":
+    } else if conversationAccess == .readWrite {
       self = .ReadWrite
-    default:
+    } else {
       preconditionFailure("Unreachable")
     }
   }
@@ -234,18 +258,17 @@ public enum ConversationAccess: Equatable {
   }
 }
 
-public enum NotificationSettings: Equatable {
+public enum NotificationSettings: Equatable, Sendable {
   case True, False, MentionsOnly
 
   init(from notificationSettings: TalkJSCore::NotificationSettings) {
-    switch notificationSettings.name {
-    case "true":
+    if notificationSettings == .`true` {
       self = .True
-    case "false":
+    } else if notificationSettings == .`false` {
       self = .False
-    case "mentionsOnly":
+    } else if notificationSettings == .mentionsOnly {
       self = .MentionsOnly
-    default:
+    } else {
       preconditionFailure("Unreachable")
     }
   }
@@ -259,7 +282,10 @@ public enum NotificationSettings: Equatable {
   }
 }
 
-public struct ConversationSubscription: RealtimeSubscription {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct ConversationSubscription: RealtimeSubscription, @unchecked Sendable {
   public var state: ConversationSubscriptionState {
     ConversationSubscriptionState(from: _subscription.state)
   }
@@ -285,7 +311,10 @@ public struct ConversationSubscription: RealtimeSubscription {
   public func unsubscribe() { _subscription.unsubscribe() }
 }
 
-public struct TypingSubscription: RealtimeSubscription {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct TypingSubscription: RealtimeSubscription, @unchecked Sendable {
   public let connected: Deferred<TypingSubscriptionState>
   public let terminated: Deferred<TypingSubscriptionState>
   public var state: TypingSubscriptionState {
@@ -311,7 +340,7 @@ public struct TypingSubscription: RealtimeSubscription {
   public func unsubscribe() { _subscription.unsubscribe() }
 }
 
-public enum ConversationSubscriptionState: SubscriptionState, Equatable {
+public enum ConversationSubscriptionState: SubscriptionState, Equatable, Sendable {
   case pending
   case unsubscribed
   case active(latestSnapshot: ConversationSnapshot?)
@@ -345,7 +374,7 @@ public enum ConversationSubscriptionState: SubscriptionState, Equatable {
   }
 }
 
-public enum TypingSubscriptionState: SubscriptionState, Equatable {
+public enum TypingSubscriptionState: SubscriptionState, Equatable, Sendable {
   case pending
   case unsubscribed
   case active(latestSnapshot: TypingSnapshot?)

@@ -1,6 +1,9 @@
 internal import TalkJSCore
 
-public struct ReactionRef {
+// @unchecked: the compiler can't look inside Kotlin.
+// Sharing the value is only dangerous if someone mutates it, and this struct
+// only has immutable data.
+public struct ReactionRef: @unchecked Sendable {
   public let emoji: String
   public let messageId: String
   public let conversationId: String
@@ -23,7 +26,7 @@ public struct ReactionRef {
   }
 }
 
-public struct ReactionSnapshot: Equatable {
+public struct ReactionSnapshot: Equatable, Sendable {
   public let emoji: String
   public let count: Int
   public let currentUserReacted: Bool

@@ -33,6 +33,18 @@ public protocol Subscription {
   func unsubscribe()
 }
 
+// The Kotlin `Subscription` is a different protocol than the one above, so a
+// Kotlin object can never be cast to it. This forwards `unsubscribe()` instead.
+struct KotlinSubscription: Subscription {
+  private let _subscription: any TalkJSCore::Subscription
+
+  init(_ subscription: any TalkJSCore::Subscription) {
+    _subscription = subscription
+  }
+
+  func unsubscribe() { _subscription.unsubscribe() }
+}
+
 public protocol RealtimeSubscription {
   associatedtype SubscriptionState
 
