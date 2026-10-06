@@ -208,7 +208,7 @@ public struct ConversationRef: @unchecked Sendable {
   ///
   /// The snapshot is nil if you are not a participant in the conversation (including when the conversation doesn't exist)
   public func subscribe(
-    onSnapshot: (@Sendable (ConversationSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (_ snapshot: ConversationSnapshot?) -> Void)? = nil
   ) -> ConversationSubscription {
     let handler: ((TalkJSCore::ConversationSnapshot?) -> Void)? =
       if onSnapshot != nil {
@@ -234,7 +234,7 @@ public struct ConversationRef: @unchecked Sendable {
   /// - Parameter onSnapshot: function called when the list of messages is updated
   /// - Returns: A subscription to messages.
   public func subscribeMessages(
-    onSnapshot: (@Sendable ([MessageSnapshot]?, Bool) -> Void)? = nil
+    onSnapshot: (@Sendable (_ snapshot: [MessageSnapshot]?, _ loadedAll: Bool) -> Void)? = nil
   ) -> MessageSubscription {
     let handler: (([TalkJSCore::MessageSnapshot]?, KotlinBoolean) -> Void)? =
       if onSnapshot != nil {
@@ -266,17 +266,16 @@ public struct ConversationRef: @unchecked Sendable {
   ///
   /// Remember to call `.unsubscribe` on the subscription once you are done with it.
   public func subscribeParticipants(
-    onSnapshot: (@Sendable ([ParticipantSnapshot]?, Bool) -> Void)? = nil
+    onSnapshot: (@Sendable (_ snapshot: [ParticipantSnapshot]?, _ loadedAll: Bool) -> Void)? = nil
   ) -> ParticipantSubscription {
-    let handler:
-      (([TalkJSCore::ParticipantSnapshot]?, KotlinBoolean) -> Void)? =
-        if onSnapshot != nil {
-          { (snapshot, loadedAll) in
-            onSnapshot!(snapshot?.fromKotlin(), loadedAll.boolValue)
-          }
-        } else {
-          nil
+    let handler: (([TalkJSCore::ParticipantSnapshot]?, KotlinBoolean) -> Void)? =
+      if onSnapshot != nil {
+        { (snapshot, loadedAll) in
+          onSnapshot!(snapshot?.fromKotlin(), loadedAll.boolValue)
         }
+      } else {
+        nil
+      }
 
     let subscription = _conversationRef.subscribeParticipants(
       onSnapshot: handler
@@ -294,7 +293,7 @@ public struct ConversationRef: @unchecked Sendable {
   /// Note that if there are "many" people typing and another person starts to type, `onSnapshot` will not be called.
   /// This is because your existing ``TypingSnapshot`` (with `many` set to `true`) is still valid and did not change when the new person started to type.
   public func subscribeTyping(
-    onSnapshot: (@Sendable (TypingSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (_ snapshot: TypingSnapshot?) -> Void)? = nil
   ) -> TypingSubscription {
     let handler: ((TalkJSCore::TypingSnapshot?) -> Void)? =
       if onSnapshot != nil {

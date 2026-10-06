@@ -173,7 +173,7 @@ public struct UserRef: @unchecked Sendable {
   ///
   /// - Returns: A subscription to the user
   public func subscribe(
-    onSnapshot: (@Sendable (UserSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (_ snapshot: UserSnapshot?) -> Void)? = nil
   ) -> UserSubscription {
     let handler: ((TalkJSCore::UserSnapshot?) -> Void)? =
       if onSnapshot != nil {
@@ -194,7 +194,7 @@ public struct UserRef: @unchecked Sendable {
   ///
   /// - Returns: A subscription to the user's online status
   public func subscribeOnline(
-    onSnapshot: (@Sendable (UserOnlineSnapshot?) -> Void)? = nil
+    onSnapshot: (@Sendable (_ snapshot: UserOnlineSnapshot?) -> Void)? = nil
   )
     -> UserOnlineSubscription
   {

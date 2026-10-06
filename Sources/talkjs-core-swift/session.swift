@@ -40,7 +40,7 @@ public struct Session: @unchecked Sendable {
   /// Attaches a handler that will be called when the session encounters an error
   ///
   /// Returns a callback which detaches your handler
-  public func onError(handler: @escaping @Sendable (TalkJSError) -> Void)
+  public func onError(handler: @escaping @Sendable (_ error: TalkJSError) -> Void)
     -> any Subscription
   {
     KotlinSubscription(
@@ -50,17 +50,16 @@ public struct Session: @unchecked Sendable {
 
   /// Subscribes to the most recently active conversations for the current user
   public func subscribeConversations(
-    onSnapshot: (@Sendable ([ConversationSnapshot], Bool) -> Void)?
+    onSnapshot: (@Sendable (_ snapshot: [ConversationSnapshot], _ loadedAll: Bool) -> Void)?
   ) -> ConversationListSubscription {
-    let handler:
-      (([TalkJSCore::ConversationSnapshot], KotlinBoolean) -> Void)? =
-        if onSnapshot != nil {
-          { (snapshot, loadedAll) in
-            onSnapshot!(snapshot.fromKotlin(), loadedAll.boolValue)
-          }
-        } else {
-          nil
+    let handler: (([TalkJSCore::ConversationSnapshot], KotlinBoolean) -> Void)? =
+      if onSnapshot != nil {
+        { (snapshot, loadedAll) in
+          onSnapshot!(snapshot.fromKotlin(), loadedAll.boolValue)
         }
+      } else {
+        nil
+      }
 
     let subscription = _session.subscribeConversations(
       onSnapshot: handler

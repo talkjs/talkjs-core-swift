@@ -33,8 +33,8 @@ extension Int {
 }
 
 extension Dictionary where Key == String, Value == Bool {
-  func toKotlin() -> [String : KotlinBoolean] {
-    self.mapValues{ KotlinBoolean(value: $0) }
+  func toKotlin() -> [String: KotlinBoolean] {
+    self.mapValues { KotlinBoolean(value: $0) }
   }
 }
 

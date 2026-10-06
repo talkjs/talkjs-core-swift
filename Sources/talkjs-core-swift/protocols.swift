@@ -23,7 +23,7 @@ public struct TalkJSError: Error, Equatable {
   init(from exception: KotlinException) {
     message = exception.message
   }
-  
+
   init(_ message: String) {
     self.message = message
   }
