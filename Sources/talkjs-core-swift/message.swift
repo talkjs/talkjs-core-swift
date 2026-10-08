@@ -113,9 +113,9 @@ public struct MessageRef: @unchecked Sendable {
 /// A snapshot of a message's attributes at a given moment in time.
 ///
 /// Automatically expanded to include a snapshot of the user that sent the message, and a snapshot of the referenced message, if this message is a reply.
-public struct MessageSnapshot: Equatable, Sendable {
+public struct MessageSnapshot: Equatable, Sendable, Codable {
   /// The main body of the message, as a list of blocks that are rendered top-to-bottom.
-  public let content: [any ContentBlock]
+  @ContentBlockCoding public private(set) var content: [any ContentBlock]
   /// Time at which the message was sent, as a unix timestamp in milliseconds.
   public let createdAt: Int64
   /// Custom metadata you have set on the message
@@ -192,7 +192,7 @@ extension Array where Element == TalkJSCore::MessageSnapshot {
   }
 }
 
-public enum MessageOrigin: Equatable, Sendable {
+public enum MessageOrigin: String, Equatable, Sendable, Codable {
   case web, rest, `import`, email
 
   init(from messageOrigin: TalkJSCore::MessageOrigin) {
@@ -217,9 +217,9 @@ public enum MessageOrigin: Equatable, Sendable {
 /// Instead, contains the `referencedMessageId` field.
 ///
 /// Snapshots are immutable and we try to reuse them when possible. You should only re-render your UI when `oldSnapshot != newSnapshot`.
-public struct ReferencedMessageSnapshot: Equatable, Sendable {
+public struct ReferencedMessageSnapshot: Equatable, Sendable, Codable {
   /// The main body of the message, as a list of blocks that are rendered top-to-bottom.
-  public let content: [any ContentBlock]
+  @ContentBlockCoding public private(set) var content: [any ContentBlock]
   /// Time at which the message was sent, as a unix timestamp in milliseconds
   public let createdAt: Int64
   /// Custom metadata you have set on the message
@@ -290,7 +290,7 @@ public struct ReferencedMessageSnapshot: Equatable, Sendable {
   }
 }
 
-public enum MessageType: Equatable, Sendable {
+public enum MessageType: String, Equatable, Sendable, Codable {
   case UserMessage, SystemMessage
 
   init(from messageType: TalkJSCore::MessageType) {

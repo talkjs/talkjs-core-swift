@@ -123,7 +123,7 @@ public struct ParticipantRef: @unchecked Sendable {
 }
 
 /// A snapshot of a participant's attributes at a given moment in time.
-public struct ParticipantSnapshot: Equatable, Sendable {
+public struct ParticipantSnapshot: Equatable, Sendable, Codable {
   /// The level of access this participant has in the conversation.
   public let access: ConversationAccess
   /// The date that this user joined the conversation, as a unix timestamp in milliseconds.

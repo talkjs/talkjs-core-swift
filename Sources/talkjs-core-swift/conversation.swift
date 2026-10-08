@@ -312,7 +312,7 @@ public struct ConversationRef: @unchecked Sendable {
 /// A snapshot of a conversation's attributes at a given moment in time.
 ///
 /// Also includes information about the current user's view of that conversation, such as whether or not notifications are enabled.
-public struct ConversationSnapshot: Equatable, Sendable {
+public struct ConversationSnapshot: Equatable, Sendable, Codable {
   /// The ID of the conversation
   public let id: String
   /// Contains the conversation subject, or `nil` if the conversation does not have a subject specified.
@@ -330,6 +330,34 @@ public struct ConversationSnapshot: Equatable, Sendable {
   public let createdAt: Int64
   /// The date that the current user joined the conversation, as a unix timestamp in milliseconds.
   public let joinedAt: Int64
+  /// The last message sent in this conversation, or `nil` if not messages have been sent.
+  public let lastMessage: MessageSnapshot?
+  /// The number of messages in this conversation that the current user hasn't read.
+  public let unreadMessageCount: Int
+  /// The most recent date that the current user read the conversation.
+  ///
+  /// This value is updated whenever you read a message in a chat UI, open an email notification, or mark the conversation as read using an API like ``ConversationRef/markAsRead()``.
+  ///
+  /// Any messages sent after this timestamp are unread messages.
+  public let readUntil: Int64
+  /// Everyone in the conversation has read any messages sent on or before this date.
+  ///
+  /// This is the minimum of all the participants' `readUntil` values.
+  /// Any messages sent on or before this timestamp should show a "read" indicator in the UI.
+  ///
+  /// This value will rarely change in very large conversations.
+  /// If just one person stops checking their messages, `everyoneReadUntil` will never update.
+  public let everyoneReadUntil: Int64
+  /// Whether the conversation should be considered unread.
+  ///
+  /// This can be true even when `unreadMessageCount` is zero, if the user has manually marked the conversation as unread.
+  public let isUnread: Bool
+  /// The current user's permission level in this conversation.
+  public let access: ConversationAccess
+  /// The current user's notification settings for this conversation.
+  ///
+  /// `.False` means no notifications, `.True` means notifications for all messages, and `.MentionsOnly` means that the user will only be notified when they are mentioned with an `@`.
+  public let notify: NotificationSettings
 
   init?(from snapshot: TalkJSCore::ConversationSnapshot?) {
     guard let snapshot else {
@@ -343,6 +371,13 @@ public struct ConversationSnapshot: Equatable, Sendable {
     custom = snapshot.custom
     createdAt = snapshot.createdAt
     joinedAt = snapshot.joinedAt
+    lastMessage = MessageSnapshot(from: snapshot.lastMessage)
+    unreadMessageCount = Int(snapshot.unreadMessageCount)
+    readUntil = snapshot.readUntil
+    everyoneReadUntil = snapshot.everyoneReadUntil
+    isUnread = snapshot.isUnread
+    access = ConversationAccess(from: snapshot.access)
+    notify = NotificationSettings(from: snapshot.notify)
   }
 }
 
@@ -385,7 +420,7 @@ extension Array where Element == TalkJSCore::ConversationSnapshot {
 ///   return names.joined(separator: ", ") + " are typing"
 /// }
 /// ```
-public struct TypingSnapshot: Equatable, Sendable {
+public struct TypingSnapshot: Equatable, Sendable, Codable {
   /// Check this to differentiate between few people are typing (`false`) and many people are typing (`true`).
   ///
   /// When `false`, you can see the list of users who are typing in the `users` property.
@@ -407,7 +442,7 @@ public struct TypingSnapshot: Equatable, Sendable {
   }
 }
 
-public enum ConversationAccess: Equatable, Sendable {
+public enum ConversationAccess: String, Equatable, Sendable, Codable {
   case Read, ReadWrite
 
   init(from conversationAccess: TalkJSCore::ConversationAccess) {
@@ -428,8 +463,44 @@ public enum ConversationAccess: Equatable, Sendable {
   }
 }
 
-public enum NotificationSettings: Equatable, Sendable {
+public enum NotificationSettings: Equatable, Sendable, Codable {
   case True, False, MentionsOnly
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+
+    // Very old conversations don't set this field. Default to .True
+    if container.decodeNil() {
+      self = .True
+      return
+    }
+
+    if let bool = try? container.decode(Bool.self) {
+      self =
+        if bool {
+          .True
+        } else {
+          .False
+        }
+      return
+    }
+
+    guard try container.decode(String.self) == "mentionsOnly" else {
+      throw TalkJSError("Failed to decode NotificationSettings")
+    }
+
+    self = .MentionsOnly
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+
+    switch self {
+    case .True: try container.encode(true)
+    case .False: try container.encode(false)
+    case .MentionsOnly: try container.encode("mentionsOnly")
+    }
+  }
 
   init(from notificationSettings: TalkJSCore::NotificationSettings) {
     if notificationSettings == .`true` {
