@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 internal protocol KotlinConvertibleEntity {
@@ -6,13 +7,14 @@ internal protocol KotlinConvertibleEntity {
 }
 
 // Since we also want the String type to conform to this protocol
-// having the property `type` would be risky as some other protocol
+// having a public property `type` would be risky as some other protocol
 // the user is using could also need the property `type`.
 //
-// Also the JS implementation needs the `type` property to distinguish
-// the various objects. Swift is a type safe language we don't really
-// need the `type` property
-public protocol Entity: Equatable, Sendable {}
+// The JSON representation has to match the JS/Kotlin one, which uses the
+// `type` field to distinguish the various objects. So each struct stores
+// it as a `private` property: it is encoded, but it never shows up in the
+// public API.
+public protocol Entity: Equatable, Sendable, Codable {}
 
 extension Entity {
   func isEqual<U: Entity>(_ rhs: U) -> Bool {
@@ -28,6 +30,10 @@ extension String: Entity {}
 public typealias EntityTreeNode = any Entity
 /// A multi-root tree, which describes a bunch of formatting and logical entities within a message.
 public typealias EntityTree = [EntityTreeNode]
+
+public func entityTreeEqual(_ lhs: EntityTree, _ rhs: EntityTree) -> Bool {
+  lhs.isEqual(rhs)
+}
 
 extension Array where Element == EntityTreeNode {
   internal func toKotlinEntityTree() throws -> [TalkJSCore::Entity] {
@@ -82,6 +88,74 @@ extension Array {
   }
 }
 
+private enum EntityTypeKey: String, CodingKey {
+  case type
+}
+
+private func decodeEntityNode(from decoder: Decoder) throws -> any Entity {
+  if let text = try? decoder.singleValueContainer().decode(String.self) {
+    return text
+  }
+
+  let typeContainer = try decoder.container(keyedBy: EntityTypeKey.self)
+  let type = try typeContainer.decode(String.self, forKey: .type)
+
+  switch type {
+  case "bold", "italic", "strikethrough": return try Markup(from: decoder)
+  case "blockquote": return try Blockquote(from: decoder)
+  case "bulletlist", "bulletList": return try BulletList(from: decoder)
+  case "bulletpoint", "bulletPoint": return try BulletPoint(from: decoder)
+  case "link": return try Link(from: decoder)
+  case "actionlink", "actionLink": return try ActionLink(from: decoder)
+  case "actionbutton", "actionButton": return try ActionButton(from: decoder)
+  case "mention": return try Mention(from: decoder)
+  case "autolink", "autoLink": return try AutoLink(from: decoder)
+  case "codeblock", "codeBlock": return try CodeBlock(from: decoder)
+  case "codespan", "codeSpan": return try CodeSpan(from: decoder)
+  case "suppressed": return try Suppressed(from: decoder)
+  case "emoji": return try Emoji(from: decoder)
+  case "customemoji", "customEmoji": return try CustomEmoji(from: decoder)
+  default: throw TalkJSError("Failed to decode Entity")
+  }
+}
+
+@propertyWrapper
+public struct EntityTreeCoding: Equatable, Sendable, Codable {
+  public var wrappedValue: EntityTree
+
+  public init(wrappedValue: EntityTree) {
+    self.wrappedValue = wrappedValue
+  }
+
+  public static func == (lhs: EntityTreeCoding, rhs: EntityTreeCoding) -> Bool {
+    lhs.wrappedValue.isEqual(rhs.wrappedValue)
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.unkeyedContainer()
+    for node in wrappedValue {
+      try node.encode(to: container.superEncoder())
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    var container = try decoder.unkeyedContainer()
+    var result: EntityTree = []
+    while !container.isAtEnd {
+      result.append(try decodeEntityNode(from: try container.superDecoder()))
+    }
+    wrappedValue = result
+  }
+}
+
+public func encodeEntityTree(_ tree: EntityTree) throws -> Data {
+  try JSONEncoder().encode(EntityTreeCoding(wrappedValue: tree))
+}
+
+public func decodeEntityTree(_ data: Data) throws -> EntityTree {
+  try JSONDecoder().decode(EntityTreeCoding.self, from: data).wrappedValue
+}
+
 public protocol Leaf: Entity {
   var text: String { get }
 }
@@ -89,10 +163,12 @@ public protocol Leaf: Entity {
 public struct CodeBlock: Leaf, KotlinConvertibleEntity {
   public let text: String
   public let language: String?
+  private let type: String
 
   public init(language: String?, text: String) {
     self.language = language
     self.text = text
+    self.type = "codeBlock"
   }
 
   init(_ codeBlock: TalkJSCore::CodeBlock) {
@@ -109,9 +185,11 @@ public struct CodeBlock: Leaf, KotlinConvertibleEntity {
 /// Used when a user types ` ```text``` `.
 public struct CodeSpan: Leaf, KotlinConvertibleEntity {
   public let text: String
+  private let type: String
 
   public init(text: String) {
     self.text = text
+    self.type = "codeSpan"
   }
 
   init(_ codeSpan: TalkJSCore::CodeSpan) {
@@ -156,10 +234,12 @@ public struct AutoLink: Leaf, KotlinConvertibleEntity {
   public let text: String
   /// The URL to open when a user clicks this node.
   public let url: String
+  private let type: String
 
   public init(url: String, text: String) {
     self.url = url
     self.text = text
+    self.type = "autoLink"
   }
 
   init(_ autoLink: TalkJSCore::AutoLink) {
@@ -173,9 +253,11 @@ public struct AutoLink: Leaf, KotlinConvertibleEntity {
 
 public struct Suppressed: Leaf, KotlinConvertibleEntity {
   public let text: String
+  private let type: String
 
   public init(text: String) {
     self.text = text
+    self.type = "suppressed"
   }
 
   init(_ suppressed: TalkJSCore::Suppressed) {
@@ -189,9 +271,11 @@ public struct Suppressed: Leaf, KotlinConvertibleEntity {
 
 public struct Emoji: Leaf, KotlinConvertibleEntity {
   public let text: String
+  private let type: String
 
   public init(text: String) {
     self.text = text
+    self.type = "emoji"
   }
 
   init(_ emoji: TalkJSCore::Emoji) {
@@ -207,9 +291,11 @@ public struct Emoji: Leaf, KotlinConvertibleEntity {
 public struct CustomEmoji: Leaf, KotlinConvertibleEntity {
   /// The name (including colons at the start and end) of the custom emoji to show.
   public let text: String
+  private let type: String
 
   public init(text: String) {
     self.text = text
+    self.type = "customEmoji"
   }
 
   init(_ customEmoji: TalkJSCore::CustomEmoji) {
@@ -229,10 +315,12 @@ public struct Mention: Leaf, KotlinConvertibleEntity {
   public let id: String
   /// The name of the user who is mentioned.
   public let text: String
+  private let type: String
 
   public init(id: String, text: String) {
     self.id = id
     self.text = text
+    self.type = "mention"
   }
 
   init(_ mention: TalkJSCore::Mention) {
@@ -246,7 +334,7 @@ public struct Mention: Leaf, KotlinConvertibleEntity {
 
 /// A node in a ``TextBlock`` that renders its children with a specific style.
 public struct Markup: Entity, KotlinConvertibleEntity {
-  public let children: EntityTree
+  @EntityTreeCoding public private(set) var children: EntityTree
   /// The kind of formatting to apply when rendering the children
   ///
   /// - `type: "bold"` is used when users type `*text*` and is rendered with HTML `<strong>`
@@ -286,10 +374,12 @@ public struct Markup: Entity, KotlinConvertibleEntity {
 }
 
 public struct Blockquote: Entity, KotlinConvertibleEntity {
-  public let children: EntityTree
+  @EntityTreeCoding public private(set) var children: EntityTree
+  private let type: String
 
   public init(children: EntityTree) {
     self.children = children
+    self.type = "blockquote"
   }
 
   init(_ blockquote: TalkJSCore::Blockquote) throws {
@@ -312,10 +402,12 @@ public struct Blockquote: Entity, KotlinConvertibleEntity {
 ///
 /// Used when users send a bullet-point list by starting lines of their message with `-` or `*`.
 public struct BulletList: Entity, KotlinConvertibleEntity {
-  public let children: EntityTree
+  @EntityTreeCoding public private(set) var children: EntityTree
+  private let type: String
 
   public init(children: EntityTree) {
     self.children = children
+    self.type = "bulletList"
   }
 
   init(_ bulletList: TalkJSCore::BulletList) throws {
@@ -338,10 +430,12 @@ public struct BulletList: Entity, KotlinConvertibleEntity {
 ///
 /// Used when users start a line of their message with `-` or `*`.
 public struct BulletPoint: Entity, KotlinConvertibleEntity {
-  public let children: [EntityTreeNode]
+  @EntityTreeCoding public private(set) var children: [EntityTreeNode]
+  private let type: String
 
   public init(children: [EntityTreeNode]) {
     self.children = children
+    self.type = "bulletPoint"
   }
 
   init(_ bulletPoint: TalkJSCore::BulletPoint) throws {
@@ -368,13 +462,15 @@ public protocol Clickable: Entity {
 ///
 /// By default, users do not have permission to send messages containing ``Link`` as it can be used to maliciously hide the true destination of a link.
 public struct Link: Clickable, KotlinConvertibleEntity {
-  public let children: EntityTree
+  @EntityTreeCoding public private(set) var children: EntityTree
   /// The URL to open when the node is clicked.
   public let url: String
+  private let type: String
 
   public init(url: String, children: EntityTree) {
     self.children = children
     self.url = url
+    self.type = "link"
   }
 
   init(_ link: TalkJSCore::Link) throws {
@@ -404,16 +500,18 @@ public typealias CustomData = [String: String]
 /// By default, users do not have permission to send messages containing ``ActionLink`` as it can be used maliciously to trick others into invoking custom actions.
 /// For example, a user could send an "accept offer" action link, but disguise it as a link to a website.
 public struct ActionLink: Clickable, KotlinConvertibleEntity {
-  public let children: EntityTree
+  @EntityTreeCoding public private(set) var children: EntityTree
   /// The name of the custom action to invoke when the link is clicked.
   public let action: String
   /// The parameters to pass to the custom action when the link is clicked.
   public let params: CustomData
+  private let type: String
 
   public init(action: String, params: CustomData, children: EntityTree) {
     self.action = action
     self.params = params
     self.children = children
+    self.type = "actionLink"
   }
 
   init(_ actionLink: TalkJSCore::ActionLink) throws {
@@ -444,16 +542,18 @@ public struct ActionLink: Clickable, KotlinConvertibleEntity {
 /// By default, users do not have permission to send messages containing action buttons as they can be used maliciously to trick others into invoking custom actions.
 /// For example, a user could send an "accept offer" action button, but disguise it as "view offer".
 public struct ActionButton: Clickable, KotlinConvertibleEntity {
-  public let children: EntityTree
+  @EntityTreeCoding public private(set) var children: EntityTree
   /// The name of the custom action to invoke when the button is clicked.
   public let action: String
   /// The parameters to pass to the custom action when the button is clicked.
   public let params: CustomData
+  private let type: String
 
   public init(action: String, params: CustomData, children: EntityTree) {
     self.action = action
     self.params = params
     self.children = children
+    self.type = "actionButton"
   }
 
   init(_ actionButton: TalkJSCore::ActionButton) throws {
