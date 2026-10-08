@@ -84,6 +84,15 @@ public struct UserRef: @unchecked Sendable {
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
   /// To delete a field in the `pushTokens` property, pass it as `pushTokens.FIELD_TO_DELETE`.
   public func deleteFields(_ fields: String...) async {
+    await deleteFields(fields)
+  }
+
+  /// Deletes properties of this user.
+  ///
+  /// Pass the name of each property to delete in the `fields` array.
+  /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
+  /// To delete a field in the `pushTokens` property, pass it as `pushTokens.FIELD_TO_DELETE`.
+  public func deleteFields(_ fields: [String]) async {
     try! await _userRef.deleteFields(fields: fields.toKotlinArray())
   }
 

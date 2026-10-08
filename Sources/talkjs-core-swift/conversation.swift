@@ -68,6 +68,14 @@ public struct ConversationRef: @unchecked Sendable {
   /// Pass the name of each property to delete as a separate parameter to this function.
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
   public func deleteFields(_ fields: String...) async {
+    await deleteFields(fields)
+  }
+
+  /// Deletes properties of this conversation.
+  ///
+  /// Pass the name of each property to delete in the `fields` array.
+  /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
+  public func deleteFields(_ fields: [String]) async {
     try! await _conversationRef.deleteFields(fields: fields.toKotlinArray())
   }
 
