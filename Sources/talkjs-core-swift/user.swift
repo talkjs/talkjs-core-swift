@@ -142,7 +142,7 @@ public struct UserRef: @unchecked Sendable {
   ///
   ///     Default = no push tokens
   public func set(
-    name: String,
+    name: String? = nil,
     role: String? = nil,
     photoUrl: String? = nil,
     email: [String]? = nil,
@@ -213,7 +213,7 @@ public struct UserRef: @unchecked Sendable {
 /// A snapshot of a user's attributes at a given moment in time.
 ///
 /// Users also have private information, such as email addresses and phone numbers, but these are only exposed on the [REST API](https://talkjs.com/docs/Reference/REST_API/Getting_Started/Introduction/)
-public struct UserSnapshot: Equatable, Sendable {
+public struct UserSnapshot: Equatable, Sendable, Codable {
   /// The unique ID that is used to identify the user in TalkJS
   public let id: String
   /// The user's name, which is displayed on the TalkJS UI
@@ -254,7 +254,7 @@ extension Array where Element == TalkJSCore::UserSnapshot {
 /// A snapshot of a user's online status at a given moment in time.
 ///
 /// Snapshots are immutable and we try to reuse them when possible. You should only re-render your UI when `oldSnapshot != newSnapshot`.
-public struct UserOnlineSnapshot: Equatable, Sendable {
+public struct UserOnlineSnapshot: Equatable, Sendable, Codable {
   /// Whether the user is connected right now
   ///
   /// Users are considered connected whenever they have an active websocket connection to the TalkJS servers.

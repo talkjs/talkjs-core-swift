@@ -56,7 +56,7 @@ public struct ReactionRef: @unchecked Sendable {
 }
 
 /// A summary of a single emoji reaction on a message.
-public struct ReactionSnapshot: Equatable, Sendable {
+public struct ReactionSnapshot: Equatable, Sendable, Codable {
   /// Which emoji the users reacted with.
   ///
   /// Either a single Unicode emoji, or the name of a custom emoji with a colon at the start and end.
