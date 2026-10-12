@@ -60,6 +60,13 @@ public struct ParticipantRef: @unchecked Sendable {
   ///
   /// Pass the name of each property to delete as a separate parameter to this function.
   public func deleteFields(_ fields: String...) async {
+    await deleteFields(fields)
+  }
+
+  /// Deletes properties of this participant.
+  ///
+  /// Pass the name of each property to delete in the `fields` array.
+  public func deleteFields(_ fields: [String]) async {
     try! await _participantRef.deleteFields(fields: fields.toKotlinArray())
   }
 
@@ -123,7 +130,7 @@ public struct ParticipantRef: @unchecked Sendable {
 }
 
 /// A snapshot of a participant's attributes at a given moment in time.
-public struct ParticipantSnapshot: Equatable, Sendable {
+public struct ParticipantSnapshot: Equatable, Sendable, Codable {
   /// The level of access this participant has in the conversation.
   public let access: ConversationAccess
   /// The date that this user joined the conversation, as a unix timestamp in milliseconds.

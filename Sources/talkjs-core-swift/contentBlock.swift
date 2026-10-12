@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 internal protocol KotlinConvertibleSendBlock {
@@ -8,18 +9,6 @@ internal protocol KotlinConvertibleSendBlock {
 internal protocol KotlinConvertibleContentBlock {
   associatedtype KotlinType: TalkJSCore::ContentBlock
   func toKotlin() throws -> KotlinType
-}
-
-extension Array where Element == any SendContentBlock {
-  func toKotlinSendContentBlock() throws -> [TalkJSCore::SendContentBlock] {
-    try self.map {
-      if let entity = $0 as? (any KotlinConvertibleSendBlock) {
-        try entity.toKotlin()
-      } else {
-        throw TalkJSError("Unknown SendContentBlock: \(type(of: $0))")
-      }
-    }
-  }
 }
 
 /// The content of a message is structured as a list of content blocks.
@@ -36,30 +25,95 @@ extension Array where Element == any SendContentBlock {
 /// - ``FileBlock``
 ///
 /// - ``LocationBlock``
-public protocol ContentBlock: Equatable, Sendable {}
+public protocol ContentBlock: Equatable, Sendable, Codable {}
 
 extension ContentBlock {
   func isEqual<U: ContentBlock>(_ rhs: U) -> Bool {
     guard let lhs = self as? U else { return false }
 
-    return lhs == rhs
+    // Plain `==` would pick the existential overload below and recurse forever
+    return concreteEqual(lhs, rhs)
   }
 }
 
+public func == (lhs: any ContentBlock, rhs: any ContentBlock) -> Bool {
+  lhs.isEqual(rhs)
+}
+
+public func != (lhs: any ContentBlock, rhs: any ContentBlock) -> Bool {
+  !lhs.isEqual(rhs)
+}
+
 extension Array where Element == any ContentBlock {
-  func isEqual(_ other: [any ContentBlock]) -> Bool {
-    guard self.count == other.count else { return false }
+  public static func == (lhs: [any ContentBlock], rhs: [any ContentBlock]) -> Bool {
+    lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0 == $1 }
+  }
 
-    for index in 0..<self.count {
-      let lhs = self[index]
-      let rhs = other[index]
+  public static func != (lhs: [any ContentBlock], rhs: [any ContentBlock]) -> Bool {
+    lhs.count != rhs.count || zip(lhs, rhs).contains { $0 != $1 }
+  }
+}
 
-      if !lhs.isEqual(rhs) {
-        return false
-      }
+public func encodeContentBlocks(_ blocks: [any ContentBlock]) throws -> Data {
+  try JSONEncoder().encode(ContentBlockCoding(wrappedValue: blocks))
+}
+
+private enum ContentBlockTypeKey: String, CodingKey {
+  case type
+  case subtype
+}
+
+private func decodeContentBlock(from decoder: Decoder) throws -> any ContentBlock {
+  let typeContainer = try decoder.container(keyedBy: ContentBlockTypeKey.self)
+  let type = try typeContainer.decode(String.self, forKey: .type)
+
+  switch type {
+  case "text": return try TextBlock(from: decoder)
+  case "location": return try LocationBlock(from: decoder)
+  case "file":
+    let subtype = try typeContainer.decodeIfPresent(String.self, forKey: .subtype)
+    switch subtype {
+    case "video": return try VideoBlock(from: decoder)
+    case "image": return try ImageBlock(from: decoder)
+    case "audio": return try AudioBlock(from: decoder)
+    case "voice": return try VoiceBlock(from: decoder)
+    case nil: return try GenericFileBlock(from: decoder)
+    default: throw TalkJSError("Failed to decode ContentBlock")
     }
+  default: throw TalkJSError("Failed to decode ContentBlock")
+  }
+}
 
-    return true
+public func decodeContentBlocks(_ data: Data) throws -> [any ContentBlock] {
+  try JSONDecoder().decode(ContentBlockCoding.self, from: data).wrappedValue
+}
+
+@propertyWrapper
+public struct ContentBlockCoding: Equatable, Sendable, Codable {
+  public var wrappedValue: [any ContentBlock]
+
+  public init(wrappedValue: [any ContentBlock]) {
+    self.wrappedValue = wrappedValue
+  }
+
+  public static func == (lhs: ContentBlockCoding, rhs: ContentBlockCoding) -> Bool {
+    lhs.wrappedValue == rhs.wrappedValue
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.unkeyedContainer()
+    for block in wrappedValue {
+      try block.encode(to: container.superEncoder())
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    var container = try decoder.unkeyedContainer()
+    var result: [any ContentBlock] = []
+    while !container.isAtEnd {
+      result.append(try decodeContentBlock(from: try container.superDecoder()))
+    }
+    wrappedValue = result
   }
 }
 
@@ -94,7 +148,97 @@ extension Array where Element == TalkJSCore::ContentBlock {
 /// let convRef = session.conversation(id: "example_conversation_id")
 /// await convRef.send(content: existingMessage.content)
 /// ```
-public protocol SendContentBlock: Equatable {}
+public protocol SendContentBlock: Equatable, Sendable, Codable {}
+
+extension SendContentBlock {
+  func isEqual<U: SendContentBlock>(_ rhs: U) -> Bool {
+    guard let lhs = self as? U else { return false }
+
+    // Plain `==` would pick the existential overload below and recurse forever
+    return concreteEqual(lhs, rhs)
+  }
+}
+
+public func == (lhs: any SendContentBlock, rhs: any SendContentBlock) -> Bool {
+  lhs.isEqual(rhs)
+}
+
+public func != (lhs: any SendContentBlock, rhs: any SendContentBlock) -> Bool {
+  !lhs.isEqual(rhs)
+}
+
+extension Array where Element == any SendContentBlock {
+  func toKotlinSendContentBlock() throws -> [TalkJSCore::SendContentBlock] {
+    try self.map {
+      if let entity = $0 as? (any KotlinConvertibleSendBlock) {
+        try entity.toKotlin()
+      } else {
+        throw TalkJSError("Unknown SendContentBlock: \(type(of: $0))")
+      }
+    }
+  }
+
+  public static func == (lhs: [any SendContentBlock], rhs: [any SendContentBlock]) -> Bool {
+    lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0 == $1 }
+  }
+
+  public static func != (lhs: [any SendContentBlock], rhs: [any SendContentBlock]) -> Bool {
+    lhs.count != rhs.count || zip(lhs, rhs).contains { $0 != $1 }
+  }
+}
+
+public func encodeSendContentBlocks(_ blocks: [any SendContentBlock]) throws -> Data {
+  try JSONEncoder().encode(SendContentBlockCoding(wrappedValue: blocks))
+}
+
+private enum SendContentBlockTypeKey: String, CodingKey {
+  case type
+}
+
+private func decodeSendContentBlock(from decoder: Decoder) throws -> any SendContentBlock {
+  let typeContainer = try decoder.container(keyedBy: SendContentBlockTypeKey.self)
+  let type = try typeContainer.decode(String.self, forKey: .type)
+
+  switch type {
+  case "text": return try TextBlock(from: decoder)
+  case "location": return try LocationBlock(from: decoder)
+  case "file": return try SendFileBlock(from: decoder)
+  default: throw TalkJSError("Failed to decode SendContentBlock")
+  }
+}
+
+public func decodeSendContentBlocks(_ data: Data) throws -> [any SendContentBlock] {
+  try JSONDecoder().decode(SendContentBlockCoding.self, from: data).wrappedValue
+}
+
+@propertyWrapper
+public struct SendContentBlockCoding: Equatable, Sendable, Codable {
+  public var wrappedValue: [any SendContentBlock]
+
+  public init(wrappedValue: [any SendContentBlock]) {
+    self.wrappedValue = wrappedValue
+  }
+
+  public static func == (lhs: SendContentBlockCoding, rhs: SendContentBlockCoding) -> Bool {
+    lhs.wrappedValue == rhs.wrappedValue
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.unkeyedContainer()
+    for block in wrappedValue {
+      try block.encode(to: container.superEncoder())
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    var container = try decoder.unkeyedContainer()
+    var result: [any SendContentBlock] = []
+    while !container.isAtEnd {
+      result.append(try decodeSendContentBlock(from: try container.superDecoder()))
+    }
+    wrappedValue = result
+  }
+}
 
 /// A block of formatted text in a message's content.
 ///
@@ -127,10 +271,12 @@ public protocol SendContentBlock: Equatable {}
 public struct TextBlock:
   ContentBlock, SendContentBlock, KotlinConvertibleSendBlock
 {
-  public let children: EntityTree
+  @EntityTreeCoding public private(set) var children: EntityTree
+  private let type: String
 
   public init(children: EntityTree) {
     self.children = children
+    self.type = "text"
   }
 
   init(_ textBlock: TalkJSCore::TextBlock) throws {
@@ -140,12 +286,12 @@ public struct TextBlock:
   func toKotlin() throws -> TalkJSCore::TextBlock {
     TalkJSCore::TextBlock(
       children: try children.toKotlinEntityTree(),
-      type: "textBlock"
+      type: "text"
     )
   }
 
   public static func == (lhs: TextBlock, rhs: TextBlock) -> Bool {
-    lhs.children.isEqual(rhs.children)
+    lhs.children == rhs.children
   }
 }
 
@@ -168,10 +314,12 @@ public struct LocationBlock:
   ///
   /// Must be a number between -180 and 180
   public let longitude: Double
+  private let type: String
 
   public init(latitude: Double, longitude: Double) {
     self.latitude = latitude
     self.longitude = longitude
+    self.type = "location"
   }
 
   init(_ locationBlock: TalkJSCore::LocationBlock) {
@@ -209,9 +357,11 @@ public struct LocationBlock:
 public struct SendFileBlock: SendContentBlock, KotlinConvertibleSendBlock {
   /// The encoded identifier for the file, obtained by uploading a file with ``Session/sendFile``, or taken from another message.
   public let fileToken: String
+  private let type: String
 
   public init(fileToken: String) {
     self.fileToken = fileToken
+    self.type = "file"
   }
 
   func toKotlin() throws -> TalkJSCore::SendFileBlock {
@@ -250,12 +400,16 @@ public struct GenericFileBlock: FileBlock {
   public let filename: String
   /// An encoded identifier for this file. Use in ``SendFileBlock`` to send this file in another message.
   public let fileToken: String
+  private let type: String
+  private let subtype: String?
 
   public init(url: String, size: Int64, filename: String, fileToken: String) {
     self.url = url
     self.size = size
     self.filename = filename
     self.fileToken = fileToken
+    self.type = "file"
+    self.subtype = nil
   }
 
   init(_ genericFileBlock: TalkJSCore::GenericFileBlock) {
@@ -291,6 +445,8 @@ public struct ImageBlock: FileBlock {
   public let width: Int?
   /// The height of the image in pixels, if known.
   public let height: Int?
+  private let type: String
+  private let subtype: String?
 
   public init(
     url: String,
@@ -304,6 +460,8 @@ public struct ImageBlock: FileBlock {
     self.size = size
     self.filename = filename
     self.fileToken = fileToken
+    self.type = "file"
+    self.subtype = "image"
 
     self.width = width
     self.height = height
@@ -346,6 +504,8 @@ public struct VideoBlock: FileBlock {
   public let height: Int?
   /// The duration of the video in seconds, if known.
   public let duration: Double?
+  private let type: String
+  private let subtype: String?
 
   public init(
     url: String,
@@ -360,6 +520,8 @@ public struct VideoBlock: FileBlock {
     self.size = size
     self.filename = filename
     self.fileToken = fileToken
+    self.type = "file"
+    self.subtype = "video"
 
     self.width = width
     self.height = height
@@ -403,6 +565,8 @@ public struct AudioBlock: FileBlock {
 
   /// The duration of the audio in seconds, if known
   public let duration: Double?
+  private let type: String
+  private let subtype: String?
 
   public init(
     url: String,
@@ -415,6 +579,8 @@ public struct AudioBlock: FileBlock {
     self.size = size
     self.filename = filename
     self.fileToken = fileToken
+    self.type = "file"
+    self.subtype = "audio"
 
     self.duration = duration
   }
@@ -456,6 +622,8 @@ public struct VoiceBlock: FileBlock {
 
   /// The duration of the voice recording in seconds, if known
   public let duration: Double?
+  private let type: String
+  private let subtype: String?
 
   public init(
     url: String,
@@ -468,6 +636,8 @@ public struct VoiceBlock: FileBlock {
     self.size = size
     self.filename = filename
     self.fileToken = fileToken
+    self.type = "file"
+    self.subtype = "voice"
 
     self.duration = duration
   }
