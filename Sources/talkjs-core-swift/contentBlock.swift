@@ -11,18 +11,6 @@ internal protocol KotlinConvertibleContentBlock {
   func toKotlin() throws -> KotlinType
 }
 
-extension Array where Element == any SendContentBlock {
-  func toKotlinSendContentBlock() throws -> [TalkJSCore::SendContentBlock] {
-    try self.map {
-      if let entity = $0 as? (any KotlinConvertibleSendBlock) {
-        try entity.toKotlin()
-      } else {
-        throw TalkJSError("Unknown SendContentBlock: \(type(of: $0))")
-      }
-    }
-  }
-}
-
 /// The content of a message is structured as a list of content blocks.
 ///
 /// Currently, each message can only have one content block, but this will change in the future.
@@ -43,29 +31,27 @@ extension ContentBlock {
   func isEqual<U: ContentBlock>(_ rhs: U) -> Bool {
     guard let lhs = self as? U else { return false }
 
-    return lhs == rhs
+    // Plain `==` would pick the existential overload below and recurse forever
+    return concreteEqual(lhs, rhs)
   }
+}
+
+public func == (lhs: any ContentBlock, rhs: any ContentBlock) -> Bool {
+  lhs.isEqual(rhs)
+}
+
+public func != (lhs: any ContentBlock, rhs: any ContentBlock) -> Bool {
+  !lhs.isEqual(rhs)
 }
 
 extension Array where Element == any ContentBlock {
-  func isEqual(_ other: [any ContentBlock]) -> Bool {
-    guard self.count == other.count else { return false }
-
-    for index in 0..<self.count {
-      let lhs = self[index]
-      let rhs = other[index]
-
-      if !lhs.isEqual(rhs) {
-        return false
-      }
-    }
-
-    return true
+  public static func == (lhs: [any ContentBlock], rhs: [any ContentBlock]) -> Bool {
+    lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0 == $1 }
   }
-}
 
-public func contentBlocksEqual(_ lhs: [any ContentBlock], _ rhs: [any ContentBlock]) -> Bool {
-  lhs.isEqual(rhs)
+  public static func != (lhs: [any ContentBlock], rhs: [any ContentBlock]) -> Bool {
+    lhs.count != rhs.count || zip(lhs, rhs).contains { $0 != $1 }
+  }
 }
 
 public func encodeContentBlocks(_ blocks: [any ContentBlock]) throws -> Data {
@@ -111,7 +97,7 @@ public struct ContentBlockCoding: Equatable, Sendable, Codable {
   }
 
   public static func == (lhs: ContentBlockCoding, rhs: ContentBlockCoding) -> Bool {
-    lhs.wrappedValue.isEqual(rhs.wrappedValue)
+    lhs.wrappedValue == rhs.wrappedValue
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -168,29 +154,37 @@ extension SendContentBlock {
   func isEqual<U: SendContentBlock>(_ rhs: U) -> Bool {
     guard let lhs = self as? U else { return false }
 
-    return lhs == rhs
+    // Plain `==` would pick the existential overload below and recurse forever
+    return concreteEqual(lhs, rhs)
   }
+}
+
+public func == (lhs: any SendContentBlock, rhs: any SendContentBlock) -> Bool {
+  lhs.isEqual(rhs)
+}
+
+public func != (lhs: any SendContentBlock, rhs: any SendContentBlock) -> Bool {
+  !lhs.isEqual(rhs)
 }
 
 extension Array where Element == any SendContentBlock {
-  func isEqual(_ other: [any SendContentBlock]) -> Bool {
-    guard self.count == other.count else { return false }
-
-    for index in 0..<self.count {
-      let lhs = self[index]
-      let rhs = other[index]
-
-      if !lhs.isEqual(rhs) {
-        return false
+  func toKotlinSendContentBlock() throws -> [TalkJSCore::SendContentBlock] {
+    try self.map {
+      if let entity = $0 as? (any KotlinConvertibleSendBlock) {
+        try entity.toKotlin()
+      } else {
+        throw TalkJSError("Unknown SendContentBlock: \(type(of: $0))")
       }
     }
-
-    return true
   }
-}
 
-public func sendContentBlocksEqual(_ lhs: [any SendContentBlock], _ rhs: [any SendContentBlock]) -> Bool {
-  lhs.isEqual(rhs)
+  public static func == (lhs: [any SendContentBlock], rhs: [any SendContentBlock]) -> Bool {
+    lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0 == $1 }
+  }
+
+  public static func != (lhs: [any SendContentBlock], rhs: [any SendContentBlock]) -> Bool {
+    lhs.count != rhs.count || zip(lhs, rhs).contains { $0 != $1 }
+  }
 }
 
 public func encodeSendContentBlocks(_ blocks: [any SendContentBlock]) throws -> Data {
@@ -226,7 +220,7 @@ public struct SendContentBlockCoding: Equatable, Sendable, Codable {
   }
 
   public static func == (lhs: SendContentBlockCoding, rhs: SendContentBlockCoding) -> Bool {
-    lhs.wrappedValue.isEqual(rhs.wrappedValue)
+    lhs.wrappedValue == rhs.wrappedValue
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -297,7 +291,7 @@ public struct TextBlock:
   }
 
   public static func == (lhs: TextBlock, rhs: TextBlock) -> Bool {
-    lhs.children.isEqual(rhs.children)
+    lhs.children == rhs.children
   }
 }
 

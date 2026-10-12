@@ -45,3 +45,7 @@ extension Dictionary where Key == String, Value == Bool? {
     }
   }
 }
+
+func concreteEqual<T: Equatable>(_ lhs: T, _ rhs: T) -> Bool {
+  lhs == rhs
+}

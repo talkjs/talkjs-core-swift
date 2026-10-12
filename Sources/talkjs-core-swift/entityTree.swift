@@ -20,8 +20,17 @@ extension Entity {
   func isEqual<U: Entity>(_ rhs: U) -> Bool {
     guard let lhs = self as? U else { return false }
 
-    return lhs == rhs
+    // Plain `==` would pick the existential overload below and recurse forever
+    return concreteEqual(lhs, rhs)
   }
+}
+
+public func == (lhs: any Entity, rhs: any Entity) -> Bool {
+  lhs.isEqual(rhs)
+}
+
+public func != (lhs: any Entity, rhs: any Entity) -> Bool {
+  !lhs.isEqual(rhs)
 }
 
 // The String
@@ -30,10 +39,6 @@ extension String: Entity {}
 public typealias EntityTreeNode = any Entity
 /// A multi-root tree, which describes a bunch of formatting and logical entities within a message.
 public typealias EntityTree = [EntityTreeNode]
-
-public func entityTreeEqual(_ lhs: EntityTree, _ rhs: EntityTree) -> Bool {
-  lhs.isEqual(rhs)
-}
 
 extension Array where Element == EntityTreeNode {
   internal func toKotlinEntityTree() throws -> [TalkJSCore::Entity] {
@@ -46,19 +51,12 @@ extension Array where Element == EntityTreeNode {
     }
   }
 
-  func isEqual(_ other: EntityTree) -> Bool {
-    guard self.count == other.count else { return false }
+  public static func == (lhs: EntityTree, rhs: EntityTree) -> Bool {
+    lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0 == $1 }
+  }
 
-    for index in 0..<self.count {
-      let lhs = self[index]
-      let rhs = other[index]
-
-      if !lhs.isEqual(rhs) {
-        return false
-      }
-    }
-
-    return true
+  public static func != (lhs: EntityTree, rhs: EntityTree) -> Bool {
+    lhs.count != rhs.count || zip(lhs, rhs).contains { $0 != $1 }
   }
 }
 
@@ -128,7 +126,7 @@ public struct EntityTreeCoding: Equatable, Sendable, Codable {
   }
 
   public static func == (lhs: EntityTreeCoding, rhs: EntityTreeCoding) -> Bool {
-    lhs.wrappedValue.isEqual(rhs.wrappedValue)
+    lhs.wrappedValue == rhs.wrappedValue
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -369,7 +367,7 @@ public struct Markup: Entity, KotlinConvertibleEntity {
   }
 
   public static func == (lhs: Markup, rhs: Markup) -> Bool {
-    lhs.type == rhs.type && lhs.children.isEqual(rhs.children)
+    lhs.type == rhs.type && lhs.children == rhs.children
   }
 }
 
@@ -394,7 +392,7 @@ public struct Blockquote: Entity, KotlinConvertibleEntity {
   }
 
   public static func == (lhs: Blockquote, rhs: Blockquote) -> Bool {
-    lhs.children.isEqual(rhs.children)
+    lhs.children == rhs.children
   }
 }
 
@@ -422,7 +420,7 @@ public struct BulletList: Entity, KotlinConvertibleEntity {
   }
 
   public static func == (lhs: BulletList, rhs: BulletList) -> Bool {
-    lhs.children.isEqual(rhs.children)
+    lhs.children == rhs.children
   }
 }
 
@@ -450,7 +448,7 @@ public struct BulletPoint: Entity, KotlinConvertibleEntity {
   }
 
   public static func == (lhs: BulletPoint, rhs: BulletPoint) -> Bool {
-    lhs.children.isEqual(rhs.children)
+    lhs.children == rhs.children
   }
 }
 
@@ -489,7 +487,7 @@ public struct Link: Clickable, KotlinConvertibleEntity {
   }
 
   public static func == (lhs: Link, rhs: Link) -> Bool {
-    lhs.url == rhs.url && lhs.children.isEqual(rhs.children)
+    lhs.url == rhs.url && lhs.children == rhs.children
   }
 }
 
@@ -533,7 +531,7 @@ public struct ActionLink: Clickable, KotlinConvertibleEntity {
 
   public static func == (lhs: ActionLink, rhs: ActionLink) -> Bool {
     lhs.action == rhs.action && lhs.params == rhs.params
-      && lhs.children.isEqual(rhs.children)
+      && lhs.children == rhs.children
   }
 }
 
@@ -575,6 +573,6 @@ public struct ActionButton: Clickable, KotlinConvertibleEntity {
 
   public static func == (lhs: ActionButton, rhs: ActionButton) -> Bool {
     lhs.action == rhs.action && lhs.params == rhs.params
-      && lhs.children.isEqual(rhs.children)
+      && lhs.children == rhs.children
   }
 }

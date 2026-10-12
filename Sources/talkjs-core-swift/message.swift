@@ -190,7 +190,7 @@ public struct MessageSnapshot: Equatable, Sendable, Codable {
       && lhs.reactions == rhs.reactions
       && lhs.referencedMessage == rhs.referencedMessage
       && lhs.sender == rhs.sender && lhs.type == rhs.type
-      && lhs.content.isEqual(rhs.content)
+      && lhs.content == rhs.content
   }
 }
 
@@ -294,7 +294,7 @@ public struct ReferencedMessageSnapshot: Equatable, Sendable, Codable {
       && lhs.reactions == rhs.reactions
       && lhs.referencedMessageId == rhs.referencedMessageId
       && lhs.sender == rhs.sender && lhs.type == rhs.type
-      && lhs.content.isEqual(rhs.content)
+      && lhs.content == rhs.content
   }
 }
 
