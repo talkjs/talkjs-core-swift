@@ -45,3 +45,8 @@ extension Dictionary where Key == String, Value == Bool? {
     }
   }
 }
+
+// Plain `==` would pick the existential overload and recurse forever
+func concreteEqual<T: Equatable>(_ lhs: T, _ rhs: T) -> Bool {
+  lhs == rhs
+}
