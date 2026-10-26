@@ -1,11 +1,11 @@
 import Foundation
 internal import TalkJSCore
 
-extension Array where Element == Int8 {
+extension Data {
   func toKotlinByteArray() -> KotlinByteArray {
     let result = KotlinByteArray.init(size: Int32(self.count))
     for (index, value) in self.enumerated() {
-      result.set(index: Int32(index), value: value)
+      result.set(index: Int32(index), value: Int8(bitPattern: value))
     }
 
     return result

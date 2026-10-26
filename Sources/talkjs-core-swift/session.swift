@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 // @unchecked: the compiler can't look inside Kotlin.
@@ -74,7 +75,7 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary audio data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the audio file.
   /// - Returns: A file token that can be used to send the audio file in a message.
-  public func uploadAudio(data: [Int8], metadata: AudioFileMetadata) async
+  public func uploadAudio(data: Data, metadata: AudioFileMetadata) async
     -> String
   {
     return try! await _session.uploadAudio(
@@ -95,7 +96,7 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary file data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the file
   /// - Returns: A file token that can be used to send the file in a message.
-  public func uploadFile(data: [Int8], metadata: GenericFileMetadata) async
+  public func uploadFile(data: Data, metadata: GenericFileMetadata) async
     -> String
   {
     return try! await _session.uploadFile(
@@ -111,7 +112,7 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary video data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the video.
   /// - Returns: A file token that can be used to send the video in a message.
-  public func uploadVideo(data: [Int8], metadata: VideoFileMetadata) async
+  public func uploadVideo(data: Data, metadata: VideoFileMetadata) async
     -> String
   {
     return try! await _session.uploadVideo(
@@ -127,7 +128,7 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary image data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the image.
   /// - Returns: A file token that can be used to send the image in a message.
-  public func uploadImage(data: [Int8], metadata: ImageFileMetadata) async
+  public func uploadImage(data: Data, metadata: ImageFileMetadata) async
     -> String
   {
     return try! await _session.uploadImage(
@@ -143,7 +144,7 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary audio data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the voice recording.
   /// - Returns: A file token that can be used to send the audio file in a message.
-  public func uploadVoice(data: [Int8], metadata: VoiceRecordingFileMetadata)
+  public func uploadVoice(data: Data, metadata: VoiceRecordingFileMetadata)
     async
     -> String
   {
