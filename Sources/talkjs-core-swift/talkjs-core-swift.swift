@@ -69,7 +69,7 @@ public func getTalkSession(
   signature: String? = nil,
   apiUrls: ApiUrlOptions? = nil,
   forceCreateNew: Bool = false,
-  clientBuild: String = "swift-0.0.1",
+  clientBuild: String = "swift-\(version)",
 ) -> Session {
   var urlOptions: TalkJSCore::ApiUrlOptions?
   if let urls = apiUrls {
