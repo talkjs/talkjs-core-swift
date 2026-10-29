@@ -40,8 +40,8 @@ public struct ParticipantRef: @unchecked Sendable {
   public func createIfNotExists(
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
-  ) async {
-    try! await _participantRef.createIfNotExists(
+  ) async throws {
+    try await _participantRef.createIfNotExists(
       access: access?.toKotlin(),
       notify: notify?.toKotlin()
     )
@@ -52,22 +52,22 @@ public struct ParticipantRef: @unchecked Sendable {
   /// Deleting a nonexistent participant is treated as success.
   ///
   /// This function will throw if client-side conversation syncing is disabled.
-  public func delete() async {
-    try! await _participantRef.delete()
+  public func delete() async throws {
+    try await _participantRef.delete()
   }
 
   /// Deletes properties of this participant.
   ///
   /// Pass the name of each property to delete as a separate parameter to this function.
-  public func deleteFields(_ fields: String...) async {
-    await deleteFields(fields)
+  public func deleteFields(_ fields: String...) async throws {
+    try await deleteFields(fields)
   }
 
   /// Deletes properties of this participant.
   ///
   /// Pass the name of each property to delete in the `fields` array.
-  public func deleteFields(_ fields: [String]) async {
-    try! await _participantRef.deleteFields(fields: fields.toKotlinArray())
+  public func deleteFields(_ fields: [String]) async throws {
+    try await _participantRef.deleteFields(fields: fields.toKotlinArray())
   }
 
   /// Edits properties of a pre-existing participant. If the user is not already a participant in the conversation, the function will throw.
@@ -87,8 +87,8 @@ public struct ParticipantRef: @unchecked Sendable {
   public func edit(
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
-  ) async {
-    try! await _participantRef.edit(
+  ) async throws {
+    try await _participantRef.edit(
       access: access?.toKotlin(),
       notify: notify?.toKotlin()
     )
@@ -99,8 +99,8 @@ public struct ParticipantRef: @unchecked Sendable {
   /// This contains all of the participant's public information.
   ///
   /// - Returns: A snapshot of the participant's attributes, or nil if the user is not a participant. The function will throw if you are not a participant and try to read information about someone else.
-  public func get() async -> ParticipantSnapshot? {
-    let snapshot = try! await _participantRef.get()
+  public func get() async throws -> ParticipantSnapshot? {
+    let snapshot = try await _participantRef.get()
     return ParticipantSnapshot(from: snapshot)
   }
 
@@ -121,8 +121,8 @@ public struct ParticipantRef: @unchecked Sendable {
   public func set(
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
-  ) async {
-    try! await _participantRef.set(
+  ) async throws {
+    try await _participantRef.set(
       access: access?.toKotlin(),
       notify: notify?.toKotlin()
     )

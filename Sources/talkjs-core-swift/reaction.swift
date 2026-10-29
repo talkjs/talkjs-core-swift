@@ -43,15 +43,15 @@ public struct ReactionRef: @unchecked Sendable {
   /// Adds this emoji reaction onto the message, from the current user.
   ///
   /// The function will throw if the request is invalid, the message doesn't exist, there are already 50 different reactions on this message, or if you do not have permission to use emoji reactions on that message.
-  public func add() async {
-    try! await _reactionRef.add()
+  public func add() async throws {
+    try await _reactionRef.add()
   }
 
   /// Removes this emoji reaction from the message, from the current user.
   ///
   /// The function will throw if the request is invalid, the message doesn't exist, or you do not have permission to use emoji reactions on that message.
-  public func remove() async {
-    try! await _reactionRef.remove()
+  public func remove() async throws {
+    try await _reactionRef.remove()
   }
 }
 

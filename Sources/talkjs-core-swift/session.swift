@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 // @unchecked: the compiler can't look inside Kotlin.
@@ -25,16 +26,18 @@ public struct Session: @unchecked Sendable {
   ///
   /// - Parameter id: The ID of the user that you want to reference
   /// - Returns: A ``UserRef`` for the user with that ID
-  public func user(id: String) -> UserRef {
-    UserRef(from: _session.user(id: id))
+  public func user(id: String) throws -> UserRef {
+    let ref = try _session.user(id: id)
+    return UserRef(from: ref)
   }
 
   /// Get a reference to a conversation
   ///
   /// - Parameter id: The ID of the conversation that you want to reference
   /// - Returns: A ``ConversationRef`` for the conversation with that ID
-  public func conversation(id: String) -> ConversationRef {
-    ConversationRef(from: _session.conversation(id: id))
+  public func conversation(id: String) throws -> ConversationRef {
+    let ref = try _session.conversation(id: id)
+    return ConversationRef(from: ref)
   }
 
   /// Attaches a handler that will be called when the session encounters an error
@@ -74,10 +77,10 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary audio data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the audio file.
   /// - Returns: A file token that can be used to send the audio file in a message.
-  public func uploadAudio(data: [Int8], metadata: AudioFileMetadata) async
+  public func uploadAudio(data: Data, metadata: AudioFileMetadata) async throws
     -> String
   {
-    return try! await _session.uploadAudio(
+    return try await _session.uploadAudio(
       data: data.toKotlinByteArray(),
       metadata: metadata.toKotlin()
     )
@@ -95,10 +98,10 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary file data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the file
   /// - Returns: A file token that can be used to send the file in a message.
-  public func uploadFile(data: [Int8], metadata: GenericFileMetadata) async
+  public func uploadFile(data: Data, metadata: GenericFileMetadata) async throws
     -> String
   {
-    return try! await _session.uploadFile(
+    return try await _session.uploadFile(
       data: data.toKotlinByteArray(),
       metadata: metadata.toKotlin()
     )
@@ -111,10 +114,10 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary video data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the video.
   /// - Returns: A file token that can be used to send the video in a message.
-  public func uploadVideo(data: [Int8], metadata: VideoFileMetadata) async
+  public func uploadVideo(data: Data, metadata: VideoFileMetadata) async throws
     -> String
   {
-    return try! await _session.uploadVideo(
+    return try await _session.uploadVideo(
       data: data.toKotlinByteArray(),
       metadata: metadata.toKotlin()
     )
@@ -127,10 +130,10 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary image data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the image.
   /// - Returns: A file token that can be used to send the image in a message.
-  public func uploadImage(data: [Int8], metadata: ImageFileMetadata) async
+  public func uploadImage(data: Data, metadata: ImageFileMetadata) async throws
     -> String
   {
-    return try! await _session.uploadImage(
+    return try await _session.uploadImage(
       data: data.toKotlinByteArray(),
       metadata: metadata.toKotlin()
     )
@@ -143,11 +146,11 @@ public struct Session: @unchecked Sendable {
   /// - Parameter data: The binary audio data. Usually a [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
   /// - Parameter metadata: Information about the voice recording.
   /// - Returns: A file token that can be used to send the audio file in a message.
-  public func uploadVoice(data: [Int8], metadata: VoiceRecordingFileMetadata)
-    async
+  public func uploadVoice(data: Data, metadata: VoiceRecordingFileMetadata)
+    async throws
     -> String
   {
-    return try! await _session.uploadVoice(
+    return try await _session.uploadVoice(
       data: data.toKotlinByteArray(),
       metadata: metadata.toKotlin()
     )

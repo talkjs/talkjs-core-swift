@@ -22,8 +22,8 @@ let package = Package(
     .binaryTarget(
       name: "BinaryCore",
       url:
-        "https://github.com/talkjs/talkjs-core-swift/releases/download/TalkJSCore_v0.2.1-alpha/TalkJSCoreRelease.zip",
-      checksum: "afb8e9c794820c24361b4aa377890d0f2a9f1137ccfc6558d670b2816f08cb47"
+        "https://github.com/talkjs/talkjs-core-swift/releases/download/TalkJSCore_v0.3.1/TalkJSCoreRelease.zip",
+      checksum: "09d3a3db9ae9a8843170ccfbbd647c9a71994c207d566d522b1bafe0b9509acc"
     ),
     .target(
       name: "talkjs-core-swift",
