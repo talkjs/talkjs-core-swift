@@ -2,6 +2,7 @@
 
 - Added the clientBuild field to getTalkSession
 - Upload functions now take Data instead of [Int8]
+- Now functions that throw in Kotlin are marked as throws in Swift
 
 ## 0.0.4
 
