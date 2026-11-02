@@ -64,8 +64,8 @@ public struct UserRef: @unchecked Sendable {
     phone: [String]? = nil,
     pushTokens: [String: Bool]? = nil,
     welcomeMessage: String? = nil,
-  ) async {
-    try! await _userRef.createIfNotExists(
+  ) async throws {
+    try await _userRef.createIfNotExists(
       name: name,
       custom: custom,
       locale: locale,
@@ -83,8 +83,8 @@ public struct UserRef: @unchecked Sendable {
   /// Pass the name of each property to delete as a separate parameter to this function.
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
   /// To delete a field in the `pushTokens` property, pass it as `pushTokens.FIELD_TO_DELETE`.
-  public func deleteFields(_ fields: String...) async {
-    await deleteFields(fields)
+  public func deleteFields(_ fields: String...) async throws {
+    try await deleteFields(fields)
   }
 
   /// Deletes properties of this user.
@@ -92,8 +92,8 @@ public struct UserRef: @unchecked Sendable {
   /// Pass the name of each property to delete in the `fields` array.
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
   /// To delete a field in the `pushTokens` property, pass it as `pushTokens.FIELD_TO_DELETE`.
-  public func deleteFields(_ fields: [String]) async {
-    try! await _userRef.deleteFields(fields: fields.toKotlinArray())
+  public func deleteFields(_ fields: [String]) async throws {
+    try await _userRef.deleteFields(fields: fields.toKotlinArray())
   }
 
   /// Fetches a snapshot of the user.
@@ -103,8 +103,8 @@ public struct UserRef: @unchecked Sendable {
   /// Private information, such as email addresses and phone numbers, aren't included in the response.
   ///
   /// - Returns: A snapshot of the user's public attributes, or nil if the user doesn't exist.
-  public func get() async -> UserSnapshot? {
-    let snapshot = try! await _userRef.get()
+  public func get() async throws -> UserSnapshot? {
+    let snapshot = try await _userRef.get()
     return UserSnapshot(from: snapshot)
   }
 
@@ -160,8 +160,8 @@ public struct UserRef: @unchecked Sendable {
     phone: [String]? = nil,
     pushTokens: [String: Bool?]? = nil,
     welcomeMessage: String? = nil
-  ) async {
-    try! await _userRef.set(
+  ) async throws {
+    try await _userRef.set(
       name: name,
       custom: custom,
       locale: locale,

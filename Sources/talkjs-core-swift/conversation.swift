@@ -42,8 +42,8 @@ public struct ConversationRef: @unchecked Sendable {
     photoUrl: String? = nil,
     subject: String? = nil,
     welcomeMessages: [String]? = nil
-  ) async {
-    try! await _conversationRef.createIfNotExists(
+  ) async throws {
+    try await _conversationRef.createIfNotExists(
       subject: subject,
       photoUrl: photoUrl,
       welcomeMessages: welcomeMessages,
@@ -58,8 +58,8 @@ public struct ConversationRef: @unchecked Sendable {
   /// This contains all of the information related to the conversation and the current user's participation in the conversation.
   ///
   /// - Returns: A snapshot of the current user's view of the conversation, or `nil` if the current user is not a participant (including if the conversation doesn't exist)
-  public func get() async -> ConversationSnapshot? {
-    let snapshot = try! await _conversationRef.get()
+  public func get() async throws -> ConversationSnapshot? {
+    let snapshot = try await _conversationRef.get()
     return ConversationSnapshot(from: snapshot)
   }
 
@@ -67,40 +67,41 @@ public struct ConversationRef: @unchecked Sendable {
   ///
   /// Pass the name of each property to delete as a separate parameter to this function.
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
-  public func deleteFields(_ fields: String...) async {
-    await deleteFields(fields)
+  public func deleteFields(_ fields: String...) async throws {
+    try await deleteFields(fields)
   }
 
   /// Deletes properties of this conversation.
   ///
   /// Pass the name of each property to delete in the `fields` array.
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
-  public func deleteFields(_ fields: [String]) async {
-    try! await _conversationRef.deleteFields(fields: fields.toKotlinArray())
+  public func deleteFields(_ fields: [String]) async throws {
+    try await _conversationRef.deleteFields(fields: fields.toKotlinArray())
   }
 
   /// Get a reference to a message in this conversation
   ///
   /// - Parameter id: the message ID
   /// - Returns: A reference to the message with the given ID
-  public func message(id: String) -> MessageRef {
-    let messageRef = _conversationRef.message(id: id)
-    return MessageRef(from: messageRef)
+  public func message(id: String) throws -> MessageRef {
+    let ref = try _conversationRef.message(id: id)
+    return MessageRef(from: ref)
   }
 
   /// Get a reference to a participant in this conversation
   ///
   /// - Parameter user: the user's ID
   /// - Returns: A reference to the given participant
-  public func participant(user: String) -> ParticipantRef {
-    ParticipantRef(_conversationRef.participant(user: user))
+  public func participant(user: String) throws -> ParticipantRef {
+    let ref = try _conversationRef.participant(user: user)
+    return ParticipantRef(ref)
   }
 
   /// Marks the conversation as read.
   ///
   /// The function throws if you are not a participant in the conversation.
-  public func markAsRead() async {
-    try! await _conversationRef.markAsRead()
+  public func markAsRead() async throws {
+    try await _conversationRef.markAsRead()
   }
 
   /// Marks the current user as typing in this conversation for 10 seconds.
@@ -111,15 +112,15 @@ public struct ConversationRef: @unchecked Sendable {
   /// Users are also considered "not typing" when they send a message, even if that message was sent from a different tab or using the REST API.
   ///
   /// To keep the typing indicator visible for longer, call this function again to reset the 10s timer.
-  public func markAsTyping() async {
-    try! await _conversationRef.markAsTyping()
+  public func markAsTyping() async throws {
+    try await _conversationRef.markAsTyping()
   }
 
   /// Marks the conversation as unread.
   ///
   /// The function throws if you are not a participant in the conversation.
-  public func markAsUnread() async {
-    try! await _conversationRef.markAsUnread()
+  public func markAsUnread() async throws {
+    try await _conversationRef.markAsUnread()
   }
 
   /// Sends a text message in the conversation.
@@ -134,8 +135,8 @@ public struct ConversationRef: @unchecked Sendable {
     text: String,
     referencedMessage: String? = nil,
     custom: [String: String]? = nil
-  ) async -> MessageRef {
-    let messageRef = try! await _conversationRef.send(
+  ) async throws -> MessageRef {
+    let messageRef = try await _conversationRef.send(
       text: text,
       custom: custom,
       referencedMessage: referencedMessage
@@ -159,8 +160,8 @@ public struct ConversationRef: @unchecked Sendable {
     content: [any SendContentBlock],
     referencedMessage: String? = nil,
     custom: [String: String]? = nil
-  ) async -> MessageRef {
-    let messageRef = try! await _conversationRef.send(
+  ) async throws -> MessageRef {
+    let messageRef = try await _conversationRef.send(
       content: content.toKotlinSendContentBlock(),
       custom: custom,
       referencedMessage: referencedMessage,
@@ -198,8 +199,8 @@ public struct ConversationRef: @unchecked Sendable {
     custom: [String: String?]? = nil,
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
-  ) async {
-    try! await _conversationRef.set(
+  ) async throws {
+    try await _conversationRef.set(
       subject: subject,
       photoUrl: photoUrl,
       welcomeMessages: welcomeMessages,

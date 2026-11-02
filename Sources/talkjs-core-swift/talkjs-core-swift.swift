@@ -69,7 +69,8 @@ public func getTalkSession(
   signature: String? = nil,
   apiUrls: ApiUrlOptions? = nil,
   forceCreateNew: Bool = false,
-) -> Session {
+  clientBuild: String = "swift-\(version)",
+) throws -> Session {
   var urlOptions: TalkJSCore::ApiUrlOptions?
   if let urls = apiUrls {
     urlOptions = TalkJSCore::ApiUrlOptions(
@@ -79,19 +80,18 @@ public func getTalkSession(
     )
   }
 
-  return Session(
-    from: TalkJSCore::getTalkSession(
-      appId: appId,
-      userId: userId,
-      token: token,
-      tokenFetcher: tokenFetcher.map { TokenFetcherAdapter($0) },
-      forceCreateNew: forceCreateNew,
-      signature: signature,
-      apiUrls: urlOptions,
-      host: host,
-      clientBuild: "swift-0.0.1"
-    )
+  let session = try TalkJSCore::getTalkSession(
+    appId: appId,
+    userId: userId,
+    token: token,
+    tokenFetcher: tokenFetcher.map { TokenFetcherAdapter($0) },
+    forceCreateNew: forceCreateNew,
+    signature: signature,
+    apiUrls: urlOptions,
+    host: host,
+    clientBuild: clientBuild,
   )
+  return Session(from: session)
 }
 
 /// Returns a TalkSession option for the specified App ID and User ID.
@@ -110,8 +110,8 @@ public func getTalkSession(
   userId: String,
   token: String? = nil,
   tokenFetcher: TokenFetcher? = nil
-) -> Session {
-  return getTalkSession(
+) throws -> Session {
+  return try getTalkSession(
     appId: appId,
     userId: userId,
     host: "",  // prod
