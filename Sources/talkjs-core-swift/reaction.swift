@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 /// References a specific emoji reaction on a message.
@@ -44,14 +45,22 @@ public struct ReactionRef: @unchecked Sendable {
   ///
   /// The function will throw if the request is invalid, the message doesn't exist, there are already 50 different reactions on this message, or if you do not have permission to use emoji reactions on that message.
   public func add() async throws {
-    try await _reactionRef.add()
+    do {
+      try await _reactionRef.add()
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Removes this emoji reaction from the message, from the current user.
   ///
   /// The function will throw if the request is invalid, the message doesn't exist, or you do not have permission to use emoji reactions on that message.
   public func remove() async throws {
-    try await _reactionRef.remove()
+    do {
+      try await _reactionRef.remove()
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 }
 

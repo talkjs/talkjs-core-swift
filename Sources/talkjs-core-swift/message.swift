@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 /// References the message with a given message ID.
@@ -29,8 +30,12 @@ public struct MessageRef: @unchecked Sendable {
   ///
   /// - Returns: A snapshot of the message's attributes, or nil if the message doesn't exist, the conversation doesn't exist, or you're not a participant in the conversation.
   public func get() async throws -> MessageSnapshot? {
-    let snapshot = try await _messageRef.get()
-    return MessageSnapshot(from: snapshot)
+    do {
+      let snapshot = try await _messageRef.get()
+      return MessageSnapshot(from: snapshot)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Get a reference to a specific emoji reaction on this message
@@ -54,8 +59,12 @@ public struct MessageRef: @unchecked Sendable {
   /// - Returns: A ``ReactionRef`` for the reaction with that emoji on this message.
   ///   Throws If the emoji is not a string or is an empty string
   public func reaction(emoji: String) throws -> ReactionRef {
-    let ref = try _messageRef.reaction(emoji: emoji)
-    return ReactionRef(ref)
+    do {
+      let ref = try _messageRef.reaction(emoji: emoji)
+      return ReactionRef(ref)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Deletes this message, or does nothing if the message does not exist.
@@ -64,7 +73,11 @@ public struct MessageRef: @unchecked Sendable {
   ///
   /// This function will throw if you are not a participant in the conversation or if your role does not give you permission to delete this message.
   public func delete() async throws {
-    try await _messageRef.delete()
+    do {
+      try await _messageRef.delete()
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Deletes properties of this message.
@@ -80,7 +93,11 @@ public struct MessageRef: @unchecked Sendable {
   /// Pass the name of each property to delete in the `fields` array.
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
   public func deleteFields(_ fields: [String]) async throws {
-    try await _messageRef.deleteFields(fields: fields.toKotlinArray())
+    do {
+      try await _messageRef.deleteFields(fields: fields.toKotlinArray())
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Edits this message.
@@ -92,7 +109,11 @@ public struct MessageRef: @unchecked Sendable {
   ///   This value acts as a patch. Remove specific properties by calling ``deleteFields(_:)``
   ///   Default = no custom metadata
   public func edit(text: String? = nil, custom: [String: String?]? = nil) async throws {
-    try await _messageRef.edit(text: text, custom: custom)
+    do {
+      try await _messageRef.edit(text: text, custom: custom)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Edits this message.
@@ -112,10 +133,19 @@ public struct MessageRef: @unchecked Sendable {
     content: [any SendContentBlock],
     custom: [String: String?]? = nil,
   ) async throws {
-    try await _messageRef.edit(
-      content: content.toKotlinSendContentBlock(),
-      custom: custom
-    )
+    // Outside the `do` on purpose: this throws a TalkJSError, and the `catch` below would
+    // replace it with its `localizedDescription`, which for a TalkJSError
+    // is generic text instead of its `message` (it isn't a LocalizedError)
+    let kotlinContent = try content.toKotlinSendContentBlock()
+
+    do {
+      try await _messageRef.edit(
+        content: kotlinContent,
+        custom: custom
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 }
 

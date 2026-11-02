@@ -27,8 +27,12 @@ public struct Session: @unchecked Sendable {
   /// - Parameter id: The ID of the user that you want to reference
   /// - Returns: A ``UserRef`` for the user with that ID
   public func user(id: String) throws -> UserRef {
-    let ref = try _session.user(id: id)
-    return UserRef(from: ref)
+    do {
+      let ref = try _session.user(id: id)
+      return UserRef(from: ref)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Get a reference to a conversation
@@ -36,8 +40,12 @@ public struct Session: @unchecked Sendable {
   /// - Parameter id: The ID of the conversation that you want to reference
   /// - Returns: A ``ConversationRef`` for the conversation with that ID
   public func conversation(id: String) throws -> ConversationRef {
-    let ref = try _session.conversation(id: id)
-    return ConversationRef(from: ref)
+    do {
+      let ref = try _session.conversation(id: id)
+      return ConversationRef(from: ref)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Attaches a handler that will be called when the session encounters an error
@@ -80,10 +88,14 @@ public struct Session: @unchecked Sendable {
   public func uploadAudio(data: Data, metadata: AudioFileMetadata) async throws
     -> String
   {
-    return try await _session.uploadAudio(
-      data: data.toKotlinByteArray(),
-      metadata: metadata.toKotlin()
-    )
+    do {
+      return try await _session.uploadAudio(
+        data: data.toKotlinByteArray(),
+        metadata: metadata.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Upload a generic file without any additional metadata.
@@ -101,10 +113,14 @@ public struct Session: @unchecked Sendable {
   public func uploadFile(data: Data, metadata: GenericFileMetadata) async throws
     -> String
   {
-    return try await _session.uploadFile(
-      data: data.toKotlinByteArray(),
-      metadata: metadata.toKotlin()
-    )
+    do {
+      return try await _session.uploadFile(
+        data: data.toKotlinByteArray(),
+        metadata: metadata.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Upload a video with video-specific metadata.
@@ -117,10 +133,14 @@ public struct Session: @unchecked Sendable {
   public func uploadVideo(data: Data, metadata: VideoFileMetadata) async throws
     -> String
   {
-    return try await _session.uploadVideo(
-      data: data.toKotlinByteArray(),
-      metadata: metadata.toKotlin()
-    )
+    do {
+      return try await _session.uploadVideo(
+        data: data.toKotlinByteArray(),
+        metadata: metadata.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Upload an image with image-specific metadata.
@@ -133,10 +153,14 @@ public struct Session: @unchecked Sendable {
   public func uploadImage(data: Data, metadata: ImageFileMetadata) async throws
     -> String
   {
-    return try await _session.uploadImage(
-      data: data.toKotlinByteArray(),
-      metadata: metadata.toKotlin()
-    )
+    do {
+      return try await _session.uploadImage(
+        data: data.toKotlinByteArray(),
+        metadata: metadata.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Upload a voice recording with voice-specific metadata.
@@ -150,10 +174,14 @@ public struct Session: @unchecked Sendable {
     async throws
     -> String
   {
-    return try await _session.uploadVoice(
-      data: data.toKotlinByteArray(),
-      metadata: metadata.toKotlin()
-    )
+    do {
+      return try await _session.uploadVoice(
+        data: data.toKotlinByteArray(),
+        metadata: metadata.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 }
 

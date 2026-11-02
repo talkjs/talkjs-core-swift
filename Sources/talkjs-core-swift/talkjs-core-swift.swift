@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 public struct ApiUrlOptions: Equatable {
@@ -69,7 +70,7 @@ public func getTalkSession(
   signature: String? = nil,
   apiUrls: ApiUrlOptions? = nil,
   forceCreateNew: Bool = false,
-  clientBuild: String = "swift-\(version)",
+  clientBuild: String? = nil,
 ) throws -> Session {
   var urlOptions: TalkJSCore::ApiUrlOptions?
   if let urls = apiUrls {
@@ -80,18 +81,22 @@ public func getTalkSession(
     )
   }
 
-  let session = try TalkJSCore::getTalkSession(
-    appId: appId,
-    userId: userId,
-    token: token,
-    tokenFetcher: tokenFetcher.map { TokenFetcherAdapter($0) },
-    forceCreateNew: forceCreateNew,
-    signature: signature,
-    apiUrls: urlOptions,
-    host: host,
-    clientBuild: clientBuild,
-  )
-  return Session(from: session)
+  do {
+    let session = try TalkJSCore::getTalkSession(
+      appId: appId,
+      userId: userId,
+      token: token,
+      tokenFetcher: tokenFetcher.map { TokenFetcherAdapter($0) },
+      forceCreateNew: forceCreateNew,
+      signature: signature,
+      apiUrls: urlOptions,
+      host: host,
+      clientBuild: clientBuild ?? "swift-\(version)",
+    )
+    return Session(from: session)
+  } catch {
+    throw TalkJSError(error.localizedDescription)
+  }
 }
 
 /// Returns a TalkSession option for the specified App ID and User ID.

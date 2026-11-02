@@ -1,11 +1,16 @@
+import Foundation
 internal import TalkJSCore
 
 public struct Deferred<T> {
   private let _kotlinDeferred: Kotlinx_coroutines_coreDeferred
   private let _transformer: (Any?) -> T
 
-  public func await() async -> T {
-    _transformer(try! await _kotlinDeferred.await())
+  public func await() async throws -> T {
+    do {
+      return _transformer(try await awaitDeferred(deferred: _kotlinDeferred))
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   init(
