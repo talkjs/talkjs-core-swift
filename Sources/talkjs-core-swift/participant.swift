@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 /// References a given user's participation in a conversation.
@@ -41,10 +42,14 @@ public struct ParticipantRef: @unchecked Sendable {
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
   ) async throws {
-    try await _participantRef.createIfNotExists(
-      access: access?.toKotlin(),
-      notify: notify?.toKotlin()
-    )
+    do {
+      try await _participantRef.createIfNotExists(
+        access: access?.toKotlin(),
+        notify: notify?.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Removes the user as a participant, or does nothing if they are already not a participant.
@@ -53,7 +58,11 @@ public struct ParticipantRef: @unchecked Sendable {
   ///
   /// This function will throw if client-side conversation syncing is disabled.
   public func delete() async throws {
-    try await _participantRef.delete()
+    do {
+      try await _participantRef.delete()
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Deletes properties of this participant.
@@ -67,7 +76,11 @@ public struct ParticipantRef: @unchecked Sendable {
   ///
   /// Pass the name of each property to delete in the `fields` array.
   public func deleteFields(_ fields: [String]) async throws {
-    try await _participantRef.deleteFields(fields: fields.toKotlinArray())
+    do {
+      try await _participantRef.deleteFields(fields: fields.toKotlinArray())
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Edits properties of a pre-existing participant. If the user is not already a participant in the conversation, the function will throw.
@@ -88,10 +101,14 @@ public struct ParticipantRef: @unchecked Sendable {
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
   ) async throws {
-    try await _participantRef.edit(
-      access: access?.toKotlin(),
-      notify: notify?.toKotlin()
-    )
+    do {
+      try await _participantRef.edit(
+        access: access?.toKotlin(),
+        notify: notify?.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Fetches a snapshot of the participant.
@@ -100,8 +117,12 @@ public struct ParticipantRef: @unchecked Sendable {
   ///
   /// - Returns: A snapshot of the participant's attributes, or nil if the user is not a participant. The function will throw if you are not a participant and try to read information about someone else.
   public func get() async throws -> ParticipantSnapshot? {
-    let snapshot = try await _participantRef.get()
-    return ParticipantSnapshot(from: snapshot)
+    do {
+      let snapshot = try await _participantRef.get()
+      return ParticipantSnapshot(from: snapshot)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Sets properties of this participant. If the user is not already a participant in the conversation, they will be added.
@@ -122,10 +143,14 @@ public struct ParticipantRef: @unchecked Sendable {
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
   ) async throws {
-    try await _participantRef.set(
-      access: access?.toKotlin(),
-      notify: notify?.toKotlin()
-    )
+    do {
+      try await _participantRef.set(
+        access: access?.toKotlin(),
+        notify: notify?.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 // @unchecked: the compiler can't look inside Kotlin.
@@ -43,14 +44,18 @@ public struct ConversationRef: @unchecked Sendable {
     subject: String? = nil,
     welcomeMessages: [String]? = nil
   ) async throws {
-    try await _conversationRef.createIfNotExists(
-      subject: subject,
-      photoUrl: photoUrl,
-      welcomeMessages: welcomeMessages,
-      custom: custom,
-      access: access?.toKotlin(),
-      notify: notify?.toKotlin()
-    )
+    do {
+      try await _conversationRef.createIfNotExists(
+        subject: subject,
+        photoUrl: photoUrl,
+        welcomeMessages: welcomeMessages,
+        custom: custom,
+        access: access?.toKotlin(),
+        notify: notify?.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Fetches a snapshot of the conversation.
@@ -59,8 +64,12 @@ public struct ConversationRef: @unchecked Sendable {
   ///
   /// - Returns: A snapshot of the current user's view of the conversation, or `nil` if the current user is not a participant (including if the conversation doesn't exist)
   public func get() async throws -> ConversationSnapshot? {
-    let snapshot = try await _conversationRef.get()
-    return ConversationSnapshot(from: snapshot)
+    do {
+      let snapshot = try await _conversationRef.get()
+      return ConversationSnapshot(from: snapshot)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Deletes properties of this conversation.
@@ -76,7 +85,11 @@ public struct ConversationRef: @unchecked Sendable {
   /// Pass the name of each property to delete in the `fields` array.
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
   public func deleteFields(_ fields: [String]) async throws {
-    try await _conversationRef.deleteFields(fields: fields.toKotlinArray())
+    do {
+      try await _conversationRef.deleteFields(fields: fields.toKotlinArray())
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Get a reference to a message in this conversation
@@ -84,8 +97,12 @@ public struct ConversationRef: @unchecked Sendable {
   /// - Parameter id: the message ID
   /// - Returns: A reference to the message with the given ID
   public func message(id: String) throws -> MessageRef {
-    let ref = try _conversationRef.message(id: id)
-    return MessageRef(from: ref)
+    do {
+      let ref = try _conversationRef.message(id: id)
+      return MessageRef(from: ref)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Get a reference to a participant in this conversation
@@ -93,15 +110,23 @@ public struct ConversationRef: @unchecked Sendable {
   /// - Parameter user: the user's ID
   /// - Returns: A reference to the given participant
   public func participant(user: String) throws -> ParticipantRef {
-    let ref = try _conversationRef.participant(user: user)
-    return ParticipantRef(ref)
+    do {
+      let ref = try _conversationRef.participant(user: user)
+      return ParticipantRef(ref)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Marks the conversation as read.
   ///
   /// The function throws if you are not a participant in the conversation.
   public func markAsRead() async throws {
-    try await _conversationRef.markAsRead()
+    do {
+      try await _conversationRef.markAsRead()
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Marks the current user as typing in this conversation for 10 seconds.
@@ -113,14 +138,22 @@ public struct ConversationRef: @unchecked Sendable {
   ///
   /// To keep the typing indicator visible for longer, call this function again to reset the 10s timer.
   public func markAsTyping() async throws {
-    try await _conversationRef.markAsTyping()
+    do {
+      try await _conversationRef.markAsTyping()
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Marks the conversation as unread.
   ///
   /// The function throws if you are not a participant in the conversation.
   public func markAsUnread() async throws {
-    try await _conversationRef.markAsUnread()
+    do {
+      try await _conversationRef.markAsUnread()
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Sends a text message in the conversation.
@@ -136,12 +169,16 @@ public struct ConversationRef: @unchecked Sendable {
     referencedMessage: String? = nil,
     custom: [String: String]? = nil
   ) async throws -> MessageRef {
-    let messageRef = try await _conversationRef.send(
-      text: text,
-      custom: custom,
-      referencedMessage: referencedMessage
-    )
-    return MessageRef(from: messageRef)
+    do {
+      let messageRef = try await _conversationRef.send(
+        text: text,
+        custom: custom,
+        referencedMessage: referencedMessage
+      )
+      return MessageRef(from: messageRef)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Sends a message in the conversation.
@@ -161,12 +198,21 @@ public struct ConversationRef: @unchecked Sendable {
     referencedMessage: String? = nil,
     custom: [String: String]? = nil
   ) async throws -> MessageRef {
-    let messageRef = try await _conversationRef.send(
-      content: content.toKotlinSendContentBlock(),
-      custom: custom,
-      referencedMessage: referencedMessage,
-    )
-    return MessageRef(from: messageRef)
+    // Outside the `do` on purpose: this throws a TalkJSError, and the `catch` below would
+    // replace it with its `localizedDescription`, which for a TalkJSError
+    // is generic text instead of its `message` (it isn't a LocalizedError)
+    let kotlinContent = try content.toKotlinSendContentBlock()
+
+    do {
+      let messageRef = try await _conversationRef.send(
+        content: kotlinContent,
+        custom: custom,
+        referencedMessage: referencedMessage,
+      )
+      return MessageRef(from: messageRef)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Sets properties of this conversation and your participation in it.
@@ -200,14 +246,18 @@ public struct ConversationRef: @unchecked Sendable {
     access: ConversationAccess? = nil,
     notify: NotificationSettings? = nil
   ) async throws {
-    try await _conversationRef.set(
-      subject: subject,
-      photoUrl: photoUrl,
-      welcomeMessages: welcomeMessages,
-      custom: custom,
-      access: access?.toKotlin(),
-      notify: notify?.toKotlin()
-    )
+    do {
+      try await _conversationRef.set(
+        subject: subject,
+        photoUrl: photoUrl,
+        welcomeMessages: welcomeMessages,
+        custom: custom,
+        access: access?.toKotlin(),
+        notify: notify?.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Subscribes to the conversation.

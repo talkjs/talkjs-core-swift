@@ -1,3 +1,4 @@
+import Foundation
 internal import TalkJSCore
 
 /// References the user with a given user ID.
@@ -65,17 +66,21 @@ public struct UserRef: @unchecked Sendable {
     pushTokens: [String: Bool]? = nil,
     welcomeMessage: String? = nil,
   ) async throws {
-    try await _userRef.createIfNotExists(
-      name: name,
-      custom: custom,
-      locale: locale,
-      photoUrl: photoUrl,
-      role: role,
-      welcomeMessage: welcomeMessage,
-      email: email,
-      phone: phone,
-      pushTokens: pushTokens?.toKotlin()
-    )
+    do {
+      try await _userRef.createIfNotExists(
+        name: name,
+        custom: custom,
+        locale: locale,
+        photoUrl: photoUrl,
+        role: role,
+        welcomeMessage: welcomeMessage,
+        email: email,
+        phone: phone,
+        pushTokens: pushTokens?.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Deletes properties of this user.
@@ -93,7 +98,11 @@ public struct UserRef: @unchecked Sendable {
   /// To delete a field in the `custom` property, pass it as `custom.FIELD_TO_DELETE`.
   /// To delete a field in the `pushTokens` property, pass it as `pushTokens.FIELD_TO_DELETE`.
   public func deleteFields(_ fields: [String]) async throws {
-    try await _userRef.deleteFields(fields: fields.toKotlinArray())
+    do {
+      try await _userRef.deleteFields(fields: fields.toKotlinArray())
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Fetches a snapshot of the user.
@@ -104,8 +113,12 @@ public struct UserRef: @unchecked Sendable {
   ///
   /// - Returns: A snapshot of the user's public attributes, or nil if the user doesn't exist.
   public func get() async throws -> UserSnapshot? {
-    let snapshot = try await _userRef.get()
-    return UserSnapshot(from: snapshot)
+    do {
+      let snapshot = try await _userRef.get()
+      return UserSnapshot(from: snapshot)
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Sets properties of this user. The user is created if a user with this ID doesn't already exist.
@@ -161,17 +174,21 @@ public struct UserRef: @unchecked Sendable {
     pushTokens: [String: Bool?]? = nil,
     welcomeMessage: String? = nil
   ) async throws {
-    try await _userRef.set(
-      name: name,
-      custom: custom,
-      locale: locale,
-      photoUrl: photoUrl,
-      role: role,
-      welcomeMessage: welcomeMessage,
-      email: email,
-      phone: phone,
-      pushTokens: pushTokens?.toKotlin()
-    )
+    do {
+      try await _userRef.set(
+        name: name,
+        custom: custom,
+        locale: locale,
+        photoUrl: photoUrl,
+        role: role,
+        welcomeMessage: welcomeMessage,
+        email: email,
+        phone: phone,
+        pushTokens: pushTokens?.toKotlin()
+      )
+    } catch {
+      throw TalkJSError(error.localizedDescription)
+    }
   }
 
   /// Subscribe to this user's state.

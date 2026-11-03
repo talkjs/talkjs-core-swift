@@ -1,1 +1,1 @@
-@usableFromInline let version = "0.0.5"
+@usableFromInline let version = "0.0.6"
