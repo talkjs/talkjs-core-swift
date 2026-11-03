@@ -1,3 +1,10 @@
+## 0.0.6
+
+- Use BinaryCore version 0.3.2
+- clientBuild is now nullable
+- All exceptions thrown are now TalkJSError
+- Deferreds that complete exceptionally now throw an exception instead of crashing
+
 ## 0.0.5
 
 - Added the clientBuild field to getTalkSession
